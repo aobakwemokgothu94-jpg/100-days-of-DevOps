@@ -1,1 +1,72 @@
+The Nautilus application development team was working on a git repository /usr/src/kodekloudrepos/games present on Storage server in Stratos DC. However, they reported an issue with the recent commits being pushed to this repo. They have asked the DevOps team to revert repo HEAD to last commit. Below are more details about the task:
 
+
+In /usr/src/kodekloudrepos/games git repository, revert the latest commit ( HEAD ) to the previous commit (JFYI the previous commit hash should be with initial commit message ).
+
+
+Use revert games message (please use all small letters for commit message) for the new revert commit.
+
+
+
+
+thor@jumphost ~$ ssh natasha@ststor01
+The authenticity of host 'ststor01 (10.244.221.116)' can't be established.
+ED25519 key fingerprint is SHA256:yEyN8qvzhNxfcKVE+H05zwQPmQMKCXj4JyGWuOP1HIg.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added 'ststor01' (ED25519) to the list of known hosts.
+natasha@ststor01's password: 
+[natasha@ststor01 ~]$ cd /usr/src/kodekloudrepos/games[natasha@ststor01 games]$ git revert HEAD --no-edit -m "revert games"
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ git revert HEAD -m "revert games"
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ git revert HEAD --no-edit
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ git revert --no-commit HEAD
+git commit -m "revert games"
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ git log -n 2
+fatal: detected dubious ownership in repository at '/usr/src/kodekloudrepos/games'
+To add an exception for this directory, call:
+
+        git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ sudo git config --global --add safe.directory /usr/src/kodekloudrepos/games
+[natasha@ststor01 games]$ sudo git -C /usr/src/kodekloudrepos/games revert HEAD --no-edit
+[master 5dc20bd] Revert "add data.txt file"
+ Date: Thu Oct 1 11:17:40 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 info.txt
+[natasha@ststor01 games]$ sudo git -C /usr/src/kodekloudrepos/games commit --amend -m "revert games"
+[master d15283a] revert games
+ Date: Thu Oct 1 11:17:40 2026 +0000
+ 1 file changed, 1 insertion(+)
+ create mode 100644 info.txt
+[natasha@ststor01 games]$ sudo git -C /usr/src/kodekloudrepos/games log -n 2
+commit d15283a5248a4ec31c4532c7a5cf5c53680c20ba (HEAD -> master)
+Author: Admin <admin@kodekloud.com>
+Date:   Thu Oct 1 11:17:40 2026 +0000
+
+    revert games
+
+commit 7010e27a59af0b8f9047fbce4fc190aa10a08cef (origin/master)
+Author: Admin <admin@kodekloud.com>
+Date:   Thu Oct 1 11:13:23 2026 +0000
+
+    add data.txt file
+[natasha@ststor01 games]$ 
