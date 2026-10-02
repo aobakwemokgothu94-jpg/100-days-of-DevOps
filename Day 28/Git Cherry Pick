@@ -1,1 +1,19 @@
+# Git Cherry-Pick Specific Commit to Master
 
+## 📌 Problem Overview
+The Nautilus application development team has a central repository at `/opt/games.git`, which is cloned locally at `/usr/src/kodekloudrepos/games` on the Storage Server (`ststor01`). 
+
+A developer working on the `feature` branch needed a specific commit merged into the `master` branch without merging the entire feature branch (which is still work-in-progress).
+
+* **Target Commit Message:** `Update info.txt`
+* **Target Server:** Storage Server (`ststor01`)
+* **Repository Path:** `/usr/src/kodekloudrepos/games`
+
+---
+
+## 🛠️ Implementation Steps
+
+### 1. SSH into the Storage Server
+Connect to the storage server using the assigned user credentials:
+```bash
+ssh natasha@ststor01
