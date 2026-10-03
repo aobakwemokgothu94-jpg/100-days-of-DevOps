@@ -1,1 +1,85 @@
+# Day 29: Manage Git Pull Requests
 
+## Task Overview
+Implement a secure git workflow using **Gitea** and the CLI on the **Storage Server (`ststor01`)**. Direct pushes to the `master` branch are restricted to ensure code quality. All new features or contributions must go through a code review process via a Pull Request (PR) before merging.
+
+---
+
+## Infrastructure Details
+* **Server Name:** Storage Server (`ststor01`)
+* **Target Repository:** `sarah/story-blog`
+* **Source Branch:** `story/fox-and-grapes`
+* **Destination Branch:** `master`
+* **UI Tool:** Gitea (Port `3000`)
+
+---
+
+## Execution Steps
+
+### 1. Verification on Storage Server
+SSH into the storage server as user `max` and check the local clone and git commit history:
+
+```bash
+# SSH into storage server
+ssh max@ststor01
+
+# Navigate to the target repository
+cd ~/story-blog
+
+# Verify commit history and branches
+git log --oneline --graph --all
+git branch -a
+
+
+Step 2: Create the Pull Request (as Max)
+Access the Gitea UI on port 3000.
+
+Log in using Max's credentials (max / Max_pass123).
+
+Select the repository sarah/story-blog.
+
+Navigate to Pull Requests -> New Pull Request.
+
+Configure the PR branches:
+
+Target Branch (destination): master
+
+Source Branch (pull from): story/fox-and-grapes
+
+Enter Title: Added fox-and-grapes story
+
+Click Create Pull Request.
+
+Step 3: Assign Reviewer (as Max)
+On the right-hand sidebar of PR #1, click Reviewers.
+
+Search for tom and select him as the reviewer.
+
+Sign out of Gitea as max.
+
+Step 4: Review, Approve, & Merge PR (as Tom)
+Log in to Gitea using Tom's credentials (tom / Tom_pass123).
+
+Navigate to sarah/story-blog -> Pull Requests -> #1 Added fox-and-grapes story.
+
+Click Review changes, select Approve, and submit the review.
+
+Remove the WIP: prefix by clicking [Remove WIP: prefix].
+
+Click Create Merge Commit to merge story/fox-and-grapes into master.
+
+Final Verification & Results
+Gitea UI Verification:
+
+PR #1 status changed to the purple Merged badge.
+
+Commit df90695 successfully merged story/fox-and-grapes into master.
+
+Terminal Verification (Optional):
+
+Bash
+cd ~/story-blog
+git checkout master
+git pull origin master
+git log -n 5
+Task Result: Completed Successfully ✅
