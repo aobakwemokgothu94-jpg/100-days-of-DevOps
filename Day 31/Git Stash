@@ -1,1 +1,66 @@
+# Git Stash Restoration and Repository Update
+
+This repository documents the steps taken to restore stashed changes from a Git repository located on the **Storage Server (`ststor01`)** in the Stratos Datacenter and synchronize the updates with the remote repository.
+
+---
+
+## Task Requirements
+
+* **Target Directory:** `/usr/src/kodekloudrepos/blog`
+* **Target Server:** Storage Server (`ststor01`)
+* **Stash Identifier:** `stash@{1}`
+* **Objective:**
+  1. Locate and inspect stashed changes.
+  2. Restore the stash identified by `stash@{1}`.
+  3. Commit and push the restored changes to the `origin` remote repository.
+
+---
+
+## Step-by-Step Implementation
+
+### 1. Connect to the Storage Server
+SSH into the Storage Server from the Jump Host:
+```bash
+ssh natasha@ststor01
+
+2. Navigate to the Git Repository
+Change directory to the specified project repository:
+
+Bash
+cd /usr/src/kodekloudrepos/blog
+
+3. Handle Repository Ownership Exception
+To allow Git operations on a directory owned by another user, mark the directory as a safe location:
+
+Bash
+git config --global --add safe.directory /usr/src/kodekloudrepos/blog
+
+4. Verify and Apply the Stash
+List available stashes to verify stash@{1} exists:
+
+git stash list
+
+Apply the stash with elevated privileges to resolve directory permission limits:
+
+Bash
+sudo git stash apply stash@{1}
+
+5. Commit and Push Changes
+Stage the restored files, commit them, and push the branch to the remote origin (master):
+
+sudo git add .
+sudo git commit -m "Restored stashed changes from stash@{1}"
+sudo git push origin master
+
+Verification
+To verify that the working tree is clean and the remote branch is up to date:
+
+Bash
+sudo git status
+
+Expected Output:
+On branch master
+Your branch is up to date with 'origin/master'.
+
+nothing to commit, working tree clean
 
