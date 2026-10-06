@@ -1,1 +1,63 @@
+Git Rebase Task Documentation
+Task Overview
+The Nautilus application development team requested to update an in-progress feature branch with changes from the master branch in /usr/src/kodekloudrepos/apps on the Storage Server (ststor01). The key requirements were:
 
+Integrate master branch updates into the feature branch without losing any feature work.
+
+Avoid generating a merge commit (accomplished via git rebase).
+
+Push the rebased feature branch back to the remote repository (/opt/apps.git).
+
+Infrastructure & Environment Details
+Jump Host: jump-host (thor)
+
+Storage Server: ststor01 (natasha)
+
+Repository Path: /usr/src/kodekloudrepos/apps
+
+Remote Repository: /opt/apps.git
+
+Step-by-Step Execution Log
+1. SSH into Storage Server
+From the jump host, access ststor01:
+
+Bash
+ssh natasha@ststor01
+2. Navigate to Repository Directory
+Bash
+cd /usr/src/kodekloudrepos/apps
+3. Add Safe Directory Exception
+Because the directory is owned by root, Git flags a dubious ownership warning. Add the exception globally/system-wide:
+
+Bash
+sudo git config --system --add safe.directory /usr/src/kodekloudrepos/apps
+4. Fetch and Sync the Master Branch
+Switch to the master branch and pull the latest changes from the origin remote:
+
+Bash
+sudo git checkout master
+sudo git pull origin master
+5. Rebase Feature Branch onto Master
+Switch to the feature branch and rebase it onto master so that feature commits sit linearly on top of the latest master commits:
+
+Bash
+sudo git checkout feature
+sudo git rebase master
+6. Verify Git Log History
+Confirm that the branch history is linear without any merge commits:
+
+Bash
+git log --oneline -n 5
+Expected Output:
+
+Plaintext
+0987dfa (HEAD -> feature) Add new feature
+c24cb66 (origin/master, master) Update info.txt
+d82bd00 initial commit
+7. Force Push Rebased Branch
+Push the updated linear history of feature to the remote repository (/opt/apps.git):
+
+Bash
+sudo git push origin feature --force
+Conclusion
+The feature branch was successfully rebased on top of master without merge commits or data loss, and the updated branch history was pushed back to the central repository.
