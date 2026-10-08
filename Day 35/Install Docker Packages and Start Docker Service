@@ -1,1 +1,64 @@
+Git Task: Configure Git Hooks for Automated Release Tagging
+Task Type: KodeKloud Engineer Task — Git Hook Automation
 
+Target Server: Storage Server (ststor01) in Stratos DC
+
+User Context: natasha
+
+Task Overview
+The Nautilus application development team needed to set up an automated release tagging mechanism for the Git repository located at /opt/cluster.git (cloned locally at /usr/src/kodekloudrepos/cluster).
+
+The requirement was to merge the feature branch into the master branch and configure a post-update hook in the bare target repository (/opt/cluster.git). Whenever changes are pushed to the master branch, the hook automatically creates an annotated or lightweight release tag named release-YYYY-MM-DD matching the current system date.
+
+Key Requirements
+Branch Operations: Merge the feature branch into master.
+
+Hook Setup: Create an executable post-update hook script inside /opt/cluster.git/hooks/post-update.
+
+Tag Naming Pattern: release-YYYY-MM-DD (e.g., release-2026-10-08).
+
+Execution User: Perform all actions as user natasha without altering existing file/directory ownerships.
+
+Testing: Push the updated master branch to origin and verify that the release tag is generated automatically.
+
+Implementation Steps & Script
+1. Merge feature into master
+Bash
+cd /usr/src/kodekloudrepos/cluster
+git checkout master
+git merge feature
+2. Configure the post-update Hook
+In bare repositories (/opt/cluster.git), post-update receives modified ref names as command-line arguments ($1, $2, etc.).
+
+Bash
+cat << 'EOF' > /opt/cluster.git/hooks/post-update
+#!/bin/bash
+
+for refname in "$@"; do
+  if [ "$refname" = "refs/heads/master" ]; then
+    TODAY=$(date +%Y-%m-%d)
+    TAG_NAME="release-$TODAY"
+    
+    if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+      git tag "$TAG_NAME" HEAD
+    fi
+  fi
+done
+EOF
+
+chmod +x /opt/cluster.git/hooks/post-update
+3. Configure Git Identity & Test Push
+Bash
+git config --global user.email "natasha@ststor01"
+git config --global user.name "natasha"
+
+git push origin master
+Verification
+To verify that the hook executed successfully and generated the expected tag:
+
+Bash
+git --git-dir=/opt/cluster.git tag
+Expected Output:
+
+Plaintext
+release-2026-10-08
