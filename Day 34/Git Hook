@@ -1,86 +1,64 @@
-Markdown
-# Resolving Git Push Conflicts & Index Updates
+Git Task: Configure Git Hooks for Automated Release Tagging
+Task Type: KodeKloud Engineer Task — Git Hook Automation
 
-This documentation details the step-by-step resolution of git sync issues, conflict handling, and content updates for the `story-blog` repository hosted on Gitea.
+Target Server: Storage Server (ststor01) in Stratos DC
 
----
+User Context: natasha
 
-## 📌 Problem Overview
+Task Overview
+The Nautilus application development team needed to set up an automated release tagging mechanism for the Git repository located at /opt/cluster.git (cloned locally at /usr/src/kodekloudrepos/cluster).
 
-Max encountered git push failures while attempting to update the `story-blog` repository. The target updates required:
-1. Fixing a typo in story titles (`The Lion and the Mooose` $\rightarrow$ `The Lion and the Mouse`).
-2. Ensuring `story-index.txt` contains entries for all 4 stories.
-3. Pushing pending local commits to the remote `master` branch on Gitea.
+The requirement was to merge the feature branch into the master branch and configure a post-update hook in the bare target repository (/opt/cluster.git). Whenever changes are pushed to the master branch, the hook automatically creates an annotated or lightweight release tag named release-YYYY-MM-DD matching the current system date.
 
----
+Key Requirements
+Branch Operations: Merge the feature branch into master.
 
-## 🛠️ Step-by-Step Resolution
+Hook Setup: Create an executable post-update hook script inside /opt/cluster.git/hooks/post-update.
 
-### 1. Repository Status & Fetching Remote Changes
+Tag Naming Pattern: release-YYYY-MM-DD (e.g., release-2026-10-08).
 
-Navigate to the repository directory and examine local state versus remote origin:
+Execution User: Perform all actions as user natasha without altering existing file/directory ownerships.
 
-```bash
-cd /home/max/story-blog
-git fetch origin
-git log --oneline -n 5
-2. Stashing Local Work & Rebase
-To cleanly sync local work with incoming commits from origin/master:
+Testing: Push the updated master branch to origin and verify that the release tag is generated automatically.
+
+Implementation Steps & Script
+1. Merge feature into master
+Bash
+cd /usr/src/kodekloudrepos/cluster
+git checkout master
+git merge feature
+2. Configure the post-update Hook
+In bare repositories (/opt/cluster.git), post-update receives modified ref names as command-line arguments ($1, $2, etc.).
 
 Bash
-# Save uncommitted local changes
-git stash
+cat << 'EOF' > /opt/cluster.git/hooks/post-update
+#!/bin/bash
 
-# Sync local branch with remote master
-git pull --rebase origin master
-Note: If merge conflicts occur during rebase, resolve them manually or abort/reset using:
-
-Bash
-git rebase --abort
-git reset --hard origin/master
-3. File Updates & Typo Correction
-Update story-index.txt to reflect all four story titles:
-
-Bash
-cat << 'EOF' > story-index.txt
-1. The Lion and the Mouse
-2. The Frogs and the Ox
-3. The Fox and the Grapes
-4. The Donkey and the Dog
+for refname in "$@"; do
+  if [ "$refname" = "refs/heads/master" ]; then
+    TODAY=$(date +%Y-%m-%d)
+    TAG_NAME="release-$TODAY"
+    
+    if ! git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
+      git tag "$TAG_NAME" HEAD
+    fi
+  fi
+done
 EOF
-Fix any instances of the title typo (Mooose → Mouse) across text files:
 
+chmod +x /opt/cluster.git/hooks/post-update
+3. Configure Git Identity & Test Push
 Bash
-sed -i 's/Mooose/Mouse/g' *.txt
-4. Restore Missing/Stashed Story Files
-Retrieve any stashed or missing story files from stash history:
+git config --global user.email "natasha@ststor01"
+git config --global user.name "natasha"
 
-Bash
-# Check contents of saved stash
-git stash show -p stash@{0}
-
-# Restore specific files from stash
-git checkout "stash@{0}" -- fox-and-grapes.txt
-git checkout "stash@{0}" -- donkey-and-dog.txt
-5. Staging, Committing, & Pushing Changes
-Stage all corrected files, commit, and push directly to the Gitea remote master branch:
-
-Bash
-git add .
-git commit -m "Add all 4 stories, story-index, and fix typos"
 git push origin master
-🎯 Verification
-Local Working Tree:
+Verification
+To verify that the hook executed successfully and generated the expected tag:
 
 Bash
-ls -la
-Expected files present: donkey-and-dog.txt, fox-and-grapes.txt, frogs-and-ox.txt, lion-and-mouse.txt, story-index.txt.
+git --git-dir=/opt/cluster.git tag
+Expected Output:
 
-Git Log Verification:
-
-Bash
-git log -n 1
-Output shows commit hash matching remote master branch.
-
-Gitea UI:
-Log into the Gitea Web UI (http://gitea:3000/sarah/story-blog) using credentials (max / Max_pass123) to verify that all 5 text files are reflected in the repository view.
+Plaintext
+release-2026-10-08
