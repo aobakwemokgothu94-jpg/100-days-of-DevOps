@@ -1,1 +1,87 @@
+Markdown
+# Resolving Git Push Conflicts & Index Updates
+
+This documentation details the step-by-step resolution of git sync issues, conflict handling, and content updates for the `story-blog` repository hosted on Gitea.
+
+---
+
+## 📌 Problem Overview
+
+Max encountered git push failures while attempting to update the `story-blog` repository. The target updates required:
+1. Fixing a typo in story titles (`The Lion and the Mooose` $\rightarrow$ `The Lion and the Mouse`).
+2. Ensuring `story-index.txt` contains entries for all 4 stories.
+3. Pushing pending local commits to the remote `master` branch on Gitea.
+
+---
+
+## 🛠️ Step-by-Step Resolution
+
+### 1. Repository Status & Fetching Remote Changes
+
+Navigate to the repository directory and examine local state versus remote origin:
+
+```bash
+cd /home/max/story-blog
+git fetch origin
+git log --oneline -n 5
+2. Stashing Local Work & Rebase
+To cleanly sync local work with incoming commits from origin/master:
+
+Bash
+# Save uncommitted local changes
+git stash
+
+# Sync local branch with remote master
+git pull --rebase origin master
+Note: If merge conflicts occur during rebase, resolve them manually or abort/reset using:
+
+Bash
+git rebase --abort
+git reset --hard origin/master
+3. File Updates & Typo Correction
+Update story-index.txt to reflect all four story titles:
+
+Bash
+cat << 'EOF' > story-index.txt
+1. The Lion and the Mouse
+2. The Frogs and the Ox
+3. The Fox and the Grapes
+4. The Donkey and the Dog
+EOF
+Fix any instances of the title typo (Mooose → Mouse) across text files:
+
+Bash
+sed -i 's/Mooose/Mouse/g' *.txt
+4. Restore Missing/Stashed Story Files
+Retrieve any stashed or missing story files from stash history:
+
+Bash
+# Check contents of saved stash
+git stash show -p stash@{0}
+
+# Restore specific files from stash
+git checkout "stash@{0}" -- fox-and-grapes.txt
+git checkout "stash@{0}" -- donkey-and-dog.txt
+5. Staging, Committing, & Pushing Changes
+Stage all corrected files, commit, and push directly to the Gitea remote master branch:
+
+Bash
+git add .
+git commit -m "Add all 4 stories, story-index, and fix typos"
+git push origin master
+🎯 Verification
+Local Working Tree:
+
+Bash
+ls -la
+Expected files present: donkey-and-dog.txt, fox-and-grapes.txt, frogs-and-ox.txt, lion-and-mouse.txt, story-index.txt.
+
+Git Log Verification:
+
+Bash
+git log -n 1
+Output shows commit hash matching remote master branch.
+
+Gitea UI:
+Log into the Gitea Web UI (http://gitea:3000/sarah/story-blog) using credentials (max / Max_pass123) to verify that all 5 text files are reflected in the repository view.
 
