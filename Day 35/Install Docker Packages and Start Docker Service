@@ -1,1 +1,64 @@
+# Containerization Setup: Docker CE & Docker Compose on App Server 3
 
+## Overview
+This repository documents the installation and initialization of **Docker CE** and **Docker Compose** on **App Server 3 (`stapp03`)** for the Nautilus DevOps team's application containerization testing.
+
+---
+
+## Task Requirements
+1. Install `docker-ce` and `docker-compose` packages on **App Server 3**.
+2. Initiate and enable the `docker` service.
+
+---
+
+## Infrastructure Details
+
+| Server Name | Hostname | IP Address | Non-Root User |
+| :--- | :--- | :--- | :--- |
+| **App Server 3** | `stapp03` | `10.244.29.222` | `banner` |
+
+---
+
+## Step-by-Step Implementation
+
+### Step 1: Access App Server 3
+Connect to `stapp03` from the jump host via SSH:
+```bash
+ssh banner@stapp03
+Step 2: Set Up Docker Repository
+Install prerequisite utilities and add the official Docker CE repository:
+
+Bash
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+Step 3: Install Docker CE & Docker Compose Plugin
+Install the core Docker engine, CLI, containerd runtime, and the Docker Compose plugin:
+
+Bash
+sudo yum install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+Note: On Enterprise Linux 9, Docker Compose v2 is provided via the docker-compose-plugin package rather than standalone docker-compose.
+
+Step 4: Start and Enable Docker Service
+Start the Docker daemon and configure it to launch on system boot:
+
+Bash
+sudo systemctl start docker
+sudo systemctl enable docker
+Verification
+Confirm service status and installed versions:
+
+Bash
+# Check service status
+sudo systemctl status docker
+
+# Verify Docker Engine version
+docker --version
+
+# Verify Docker Compose version
+docker compose version
+Expected Output
+Service Status: Active: active (running)
+
+Docker Engine: Docker version 29.9.0, build f415da8
+
+Docker Compose: Docker Compose version v5.6.0
