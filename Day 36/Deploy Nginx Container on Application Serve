@@ -1,1 +1,53 @@
+Nginx Container Deployment on Application Server 3
+Project Overview
+As part of the Nautilus DevOps application deployment testing phase, an isolated Nginx web container must be successfully deployed, configured, and maintained in a running state on Application Server 3 (stapp03).
 
+Infrastructure Specifications
+Server Name	Hostname	User	Purpose
+Jump Host Server	jump-host	thor	Secure gateway access
+Application Server 3	stapp03	banner	Hosts Nautilus Application 3 component
+Deployment Instructions
+1. Access Application Server 3
+Establish an SSH connection from the jump host to Application Server 3 using the designated user credentials (banner):
+
+Bash
+ssh banner@stapp03
+Password: BigGr33n
+
+2. Run the Nginx Alpine Container
+Deploy the container with the nginx_3 name using the lightweight Alpine-tagged image in detached mode:
+
+Bash
+docker run -d --name nginx_3 nginx:alpine
+3. Verify Container Status
+Check the Docker container process list to ensure that nginx_3 is up and running correctly:
+
+Bash
+docker ps --filter name=nginx_3
+Execution Preview
+Plaintext
+thor@jump-host ~$ ssh banner@stapp03
+The authenticity of host 'stapp03 (10.244.81.37)' can't be established.
+ED25519 key fingerprint is SHA256:Y1H2W23hslXKUsLQFnaISjuzr/jdT/WGRmimdXHp8o8.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? YES
+Warning: Permanently added 'stapp03' (ED25519) to the list of known hosts.
+banner@stapp03's password: 
+
+[banner@stapp03 ~]$ docker run -d --name nginx_3 nginx:alpine
+Unable to find image 'nginx:alpine' locally
+alpine: Pulling from library/nginx
+e2de96513ba9: Pull complete 
+d9aae54b5831: Pull complete 
+6c53d0b2a666: Pull complete 
+745dfb2690dd: Pull complete 
+9a9a644fdd6a: Pull complete 
+64c8194480fe: Pull complete 
+e76228b47809: Pull complete 
+e72112c14215: Pull complete 
+Digest: sha256:df221db836e1754089190208cee7eeda94f233197056426eda74a43ab1abeac2
+Status: Downloaded newer image for nginx:alpine
+ab59dc7f2948e32794a6b2cbeddb1db33f7890ad7f9e8b45285800dd35406554
+
+[banner@stapp03 ~]$ docker ps --filter name=nginx_3
+CONTAINER ID   IMAGE          COMMAND                  CREATED          STATUS          PORTS     NAMES
+ab59dc7f2948   nginx:alpine   "/docker-entrypoint.…"   35 seconds ago   Up 34 seconds   80/tcp    nginx_3
