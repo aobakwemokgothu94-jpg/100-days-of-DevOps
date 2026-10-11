@@ -1,1 +1,52 @@
+Nautilus DevOps: Copying an Encrypted File to a Docker Container
+This document details the procedure, steps, and validation results for copying the encrypted file /tmp/nautilus.txt.gpg from App Server 2 (stapp02) into the running ubuntu_latest container without modifying its contents.
 
+1. Overview & Objectives
+Target Server: Application Server 2 (stapp02 / IP: 10.244.30.5)
+
+Source File: /tmp/nautilus.txt.gpg
+
+Target Destination: /opt/ inside the running Docker container named ubuntu_latest
+
+Constraint: Ensure the file integrity is maintained (verified via SHA-256 checksum).
+
+2. Implementation Steps
+Step 2.1: Access App Server 2
+SSH into Application Server 2 from the jump host using the provided credentials:
+
+Bash
+ssh steve@stapp02
+(Password: Am3ric@)
+
+Step 2.2: Verify Original File Checksum
+Calculate the SHA-256 checksum of the source file on the host to establish a baseline:
+
+Bash
+sha256sum /tmp/nautilus.txt.gpg
+Step 2.3: Copy the File to the Container
+Use the docker cp utility to copy the file directly into the target container at /opt/:
+
+Bash
+docker cp /tmp/nautilus.txt.gpg ubuntu_latest:/opt/
+Step 2.4: Verify File Integrity Inside the Container
+Inspect the file permissions and calculate the checksum of the copied file inside the container to ensure zero modification:
+
+Bash
+docker exec ubuntu_latest ls -l /opt/nautilus.txt.gpg
+docker exec ubuntu_latest sha256sum /opt/nautilus.txt.gpg
+3. Results & Execution Logs
+Host Checksum Verification
+Plaintext
+[steve@stapp02 ~]$ sha256sum /tmp/nautilus.txt.gpg
+9f9969f716568867f240e74e79b3cdcd232b02182feaa25e15c6986ce47f9be9  /tmp/nautilus.txt.gpg
+File Copy Operation
+Plaintext
+[steve@stapp02 ~]$ docker cp /tmp/nautilus.txt.gpg ubuntu_latest:/opt/
+Successfully copied 2.05kB to ubuntu_latest:/opt/
+Container File Inspection & Checksum Verification
+Plaintext
+[steve@stapp02 ~]$ docker exec ubuntu_latest ls -l /opt/nautilus.txt.gpg
+-rw-r--r-- 1 root root 105 Oct 11 05:31 /opt/nautilus.txt.gpg
+
+[steve@stapp02 ~]$ docker exec ubuntu_latest sha256sum /opt/nautilus.txt.gpg
+9f9969f716568867f240e74e79b3cdcd232b02182feaa25e15c6986ce47f9be9  /opt/nautilus.txt.gpg
