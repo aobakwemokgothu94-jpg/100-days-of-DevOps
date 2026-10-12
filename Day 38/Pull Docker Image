@@ -1,1 +1,54 @@
+Pull and Re-Tag Docker Image on Application Server 1
+This README documents the procedure to pull a Docker image on Application Server 1 (stapp01) in the Stratos DC and create a new re-tagged reference as requested by the Nautilus project developers.
 
+Task Objective
+Target Server: Application Server 1 (stapp01)
+
+Action 1: Pull the busybox:musl image.
+
+Action 2: Re-tag the image as busybox:media.
+
+Infrastructure Overview
+Server Name	Hostname	User	Password	Purpose
+Application Server 1	stapp01	tony	Ir0nM@n	Hosts Nautilus Application 1
+Jump Host Server	jump-host	thor	mjolnir123	Provides secure access to Stratos DC
+Step-by-Step Execution Guide
+1. Connect to Application Server 1 via SSH
+From the jump host, log in to Application Server 1 using the user credentials:
+
+Bash
+ssh tony@stapp01
+Provide password: Ir0nM@n when prompted.
+
+2. Pull the Base Image
+Download the required busybox:musl image from Docker Hub:
+
+Bash
+docker pull busybox:musl
+3. Re-Tag the Image
+Create a new reference tag named busybox:media pointing to the downloaded image:
+
+Bash
+docker tag busybox:musl busybox:media
+4. Verify Image Tags
+List local Docker images to confirm that both tags exist and share the same image ID:
+
+Bash
+docker images
+Execution Preview
+Plaintext
+thor@jump-host ~$ ssh tony@stapp01
+tony@stapp01's password: 
+[tony@stapp01 ~]$ docker pull busybox:musl
+musl: Pulling from library/busybox
+5c3b447848a9: Pull complete 
+Digest: sha256:ea2b9914a16a4ac1981994af97b318f7c7d4db76b580c56177f08bf76f4a0be8
+Status: Downloaded newer image for busybox:musl
+docker.io/library/busybox:musl
+
+[tony@stapp01 ~]$ docker tag busybox:musl busybox:media
+
+[tony@stapp01 ~]$ docker images
+REPOSITORY   TAG       IMAGE ID       CREATED        SIZE
+busybox      media     fd01c2c0be3f   5 months ago   1.53MB
+busybox      musl      fd01c2c0be3f   5 months ago   1.53MB
