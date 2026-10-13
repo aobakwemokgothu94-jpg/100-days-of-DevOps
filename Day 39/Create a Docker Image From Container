@@ -1,1 +1,36 @@
+Create Docker Image from Running Container (official:xfusion)
+This guide outlines the steps performed to create a new Docker image from a running container on Application Server 2 (stapp02) as requested by the Nautilus development team.
 
+Task Overview
+Server: Application Server 2 (stapp02)
+
+Source Container: ubuntu_latest
+
+Target Image Name & Tag: official:xfusion
+
+Step-by-Step Procedure
+1. Connect to Application Server 2
+From the jump host, log in to Application Server 2 using SSH:
+
+Bash
+ssh steve@stapp02
+(Password: Am3ric@)
+
+2. Commit Container Changes to a New Image
+Create the backup image from the running container using the docker commit command:
+
+Bash
+docker commit ubuntu_latest official:xfusion
+3. Verify the Image Creation
+Confirm that the image was successfully generated and registered locally:
+
+Bash
+docker images | grep official
+Preview of Execution
+Bash
+thor@jump-host ~$ ssh steve@stapp02
+steve@stapp02's password: 
+[steve@stapp02 ~]$ docker commit ubuntu_latest official:xfusion
+sha256:9ccefb042469fa52b285f464456a786cb71286286acaab6f7ee50d15fc11b66c
+[steve@stapp02 ~]$ docker images | grep official
+official     xfusion   9ccefb042469   10 seconds ago   144MB
