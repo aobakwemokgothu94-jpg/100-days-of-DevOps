@@ -1,1 +1,47 @@
+# Task README: Configure Apache on Container in App Server 3
 
+## Overview
+This README documents the steps required to install and configure the Apache HTTP server inside the `kkloud` container running on Application Server 3 (`stapp03`) in the Stratos Datacenter as part of [Project Nautilus](https://kodekloudhub.github.io/kodekloud-engineer/docs/projects/nautilus#infrastructure-details).
+
+---
+
+## Infrastructure Details
+* **Target Server:** Application Server 3 (`stapp03`)
+* **User:** `banner`
+* **Password:** `BigGr33n`
+* **Container Name:** `kkloud`
+
+---
+
+## Execution Steps
+
+### 1. Access Application Server 3
+From the jump host, log into Application Server 3 using the credentials provided:
+```bash
+ssh banner@stapp03
+2. Access the Docker Container
+Locate and access the running kkloud container interactively:
+
+Bash
+sudo docker ps
+sudo docker exec -it kkloud bash
+3. Install Apache2
+Update the package lists and install Apache inside the container:
+
+Bash
+apt-get update
+apt-get install -y apache2
+4. Configure Apache to Listen on Port 3003
+Update the global ports configuration file to listen on port 3003 without restricting it to a specific IP address:
+
+Bash
+sed -i 's/Listen 80/Listen 3003/g' /etc/apache2/ports.conf
+Update the default virtual host configuration block to match the new port:
+
+Bash
+sed -i 's/<VirtualHost \*:80>/<VirtualHost \*:3003>/g' /etc/apache2/sites-available/000-default.conf
+5. Start Apache Service
+Start the Apache web server inside the container and keep the container running:
+
+Bash
+service apache2 start
