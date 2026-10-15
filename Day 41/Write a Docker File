@@ -1,1 +1,54 @@
+ Nautilus Custom Apache Docker Image
+Overview
+This document outlines the requirements and implementation details for creating a custom Apache Docker image for Project Nautilus on Application Server 3 (stapp03).
 
+Task Requirements
+Target Server: Application Server 3 (stapp03) in Stratos DC.
+
+File Path: /opt/docker/Dockerfile (Ensure strict capitalization: capital D in Dockerfile).
+
+Base Image: ubuntu:24.04
+
+Web Server: Install apache2 and configure it to listen on port 8088 (without altering other Apache default configurations like document root).
+
+Dockerfile Implementation
+The following configuration is placed inside /opt/docker/Dockerfile:
+
+Dockerfile
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y apache2 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN sed -i 's/80/8088/g' /etc/apache2/ports.conf && \
+    sed -i 's/:80/:8088/g' /etc/apache2/sites-available/000-default.conf
+
+EXPOSE 8088
+
+CMD ["apache2ctl", "-D", "FOREGROUND"]
+Build and Run Instructions
+1. Build the Docker Image
+Navigate to the directory containing the Dockerfile and build the image:
+
+Bash
+cd /opt/docker
+sudo docker build -t nautilus-apache:latest .
+2. Run the Container
+Start a container from the custom image, mapping port 8088:
+
+Bash
+sudo docker run -d -p 8088:8088 --name test-apache nautilus-apache:latest
+3. Verify Container Status
+Check that the container is up and running correctly:
+
+Bash
+sudo docker ps
+4. Test the Endpoint
+Verify that Apache responds successfully on port 8088:
+
+Bash
+curl http://localhost:8088
