@@ -1,1 +1,71 @@
+Docker Network Setup: Beta on Application Server 2
+This repository documents the automation and execution steps for setting up a custom Docker bridge network on Application Server 2 (stapp02) as part of the Nautilus DevOps infrastructure requirements.
 
+Task Overview
+The goal was to create a dedicated Docker network named beta on stapp02 configured with a bridge driver, a specific subnet, and an isolated IP range.
+
+Requirements
+Target Server: Application Server 2 (stapp02)
+
+Network Name: beta
+
+Driver: bridge
+
+Subnet: 172.28.0.0/24
+
+IP Range: 172.28.0.0/24
+
+Execution Guide
+1. Connect to Application Server 2
+Access the server via the jump host using the provided credentials:
+
+Bash
+ssh steve@stapp02
+(Password: Am3ric@)
+
+2. Create the Docker Network
+Execute the Docker command to spin up the network with the required specifications:
+
+Bash
+docker network create \
+  --driver bridge \
+  --subnet 172.28.0.0/24 \
+  --ip-range 172.28.0.0/24 \
+  beta
+3. Verify Configuration
+Inspect the newly created network to ensure properties are correctly applied:
+
+Bash
+docker network inspect beta
+Execution Preview & Verification
+JSON
+[
+    {
+        "Name": "beta",
+        "Id": "ddca2679f39aaa39b8dbd8dabbab1692960404e2580df2fe7e0cd1d9a76e0959",
+        "Created": "2026-10-16T05:25:04.978132673Z",
+        "Scope": "local",
+        "Driver": "bridge",
+        "EnableIPv6": false,
+        "IPAM": {
+            "Driver": "default",
+            "Options": {},
+            "Config": [
+                {
+                    "Subnet": "172.28.0.0/24",
+                    "IPRange": "172.28.0.0/24"
+                }
+            ]
+        },
+        "Internal": false,
+        "Attachable": false,
+        "Ingress": false,
+        "ConfigFrom": {
+            "Network": ""
+        },
+        "ConfigOnly": false,
+        "Containers": {},
+        "Options": {},
+        "Labels": {}
+    }
+]
