@@ -1,1 +1,65 @@
+NGINX Docker Container Setup on Application Server 3
+This document provides a complete guide and walkthrough for setting up an NGINX-based container on Application Server 3 in the Stratos Datacenter as part of the Nautilus DevOps team requirements.
 
+Task Requirements
+Target Server: Application Server 3 (stapp03)
+
+Task Details:
+
+Pull the nginx:alpine Docker image.
+
+Create a container named apps using the pulled image.
+
+Map host port 8086 to container port 80 and ensure the container remains running.
+
+Step-by-Step Execution Guide
+1. Connect to Application Server 3
+SSH into Application Server 3 from the jump host using the credentials for user banner:
+
+Bash
+ssh banner@stapp03
+Password: BigGr33n
+
+2. Pull the NGINX Alpine Image
+Download the lightweight nginx:alpine image from Docker Hub:
+
+Bash
+docker pull nginx:alpine
+3. Run and Configure the Container
+Create and start the container named apps, mapping port 8086 on the host to port 80 inside the container in detached mode:
+
+Bash
+docker run -d --name apps -p 8086:80 nginx:alpine
+Execution Preview & Verification
+Below is a preview of the terminal session when executing the commands:
+
+Plaintext
+thor@jump-host ~$ ssh banner@stapp03
+banner@stapp03's password: 
+
+[banner@stapp03 ~]$ docker pull nginx:alpine
+[banner@stapp03 ~]$ docker run -d --name apps -p 8086:80 nginx:alpine
+alpine: Pulling from library/nginx
+e2de96513ba9: Pull complete 
+6711e0c4f5a7: Pull complete 
+3bf3671a4e6a: Pull complete 
+b44956913298: Pull complete 
+710ec83ca6cd: Pull complete 
+70683d58fa5c: Pull complete 
+6638b436592c: Pull complete 
+1fdd0614a47e: Pull complete 
+Digest: sha256:892bb2152464f0c5d8972593a5f5afaf8054552580b699d95f8ff4af08c2d33d
+Status: Downloaded newer image for nginx:alpine
+docker.io/library/nginx:alpine
+a8680bff377cd400a558bad05dfa3b2f6cb84a456e830c7daa3eb4cacbe1a631
+[banner@stapp03 ~]$ 
+Verify Container Status
+To verify that the container is running properly and ports are correctly mapped, run:
+
+Bash
+docker ps
+Expected output:
+
+Plaintext
+CONTAINER ID   IMAGE          COMMAND                  CREATED         STATUS         PORTS                  NAMES
+a8680bff377c   nginx:alpine   "/docker-entrypoint.…"   2 minutes ago   Up 2 minutes   0.0.0.0:8086->80/tcp   apps
