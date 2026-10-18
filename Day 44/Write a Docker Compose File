@@ -1,1 +1,56 @@
+Deploy Apache HTTP Server via Docker Compose on App Server 3
+This project sets up a containerized Apache HTTP Server (httpd) using Docker Compose on Application Server 3 (stapp03) to host static website content provided by the Nautilus application development team.
 
+Requirements
+Target Server: App Server 3 (stapp03)
+
+Docker Compose File: /opt/docker/docker-compose.yml
+
+Container Name: httpd
+
+Image: httpd:latest
+
+Port Mapping: Host port 5001 mapped to container port 80
+
+Volume Mapping: Host directory /opt/devops mounted to container path /usr/local/apache2/htdocs
+
+Configuration File (/opt/docker/docker-compose.yml)
+YAML
+services:
+  web:
+    image: httpd:latest
+    container_name: httpd
+    ports:
+      - "5001:80"
+    volumes:
+      - /opt/devops:/usr/local/apache2/htdocs
+    restart: always
+Deployment Steps
+Connect to App Server 3:
+
+Bash
+ssh banner@stapp03
+(Password: BigGr33n)
+
+Create the Docker Directory:
+
+Bash
+sudo mkdir -p /opt/docker
+Create and Populate the Compose File:
+Write the configuration above into /opt/docker/docker-compose.yml.
+
+Start the Container:
+
+Bash
+cd /opt/docker
+sudo docker compose up -d
+Verify the Deployment:
+
+Bash
+sudo docker ps
+Verification Preview
+Running sudo docker ps confirms the container is up and running with the correct port and name mappings:
+
+Plaintext
+CONTAINER ID   IMAGE          COMMAND              CREATED              STATUS              PORTS                                   NAMES
+ae267a1dcfc9   httpd:latest   "httpd-foreground"   About a minute ago   Up About a minute   0.0.0.0:5001->80/tcp, :::5001->80/tcp   httpd
