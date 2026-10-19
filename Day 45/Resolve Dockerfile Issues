@@ -1,1 +1,210 @@
+# Docker Task — Fix Dockerfile Build on App Server 1
+
+## 📌 Project Overview
+
+This task involved troubleshooting and fixing a Dockerfile for Nautilus DevOps in the Stratos Datacenter (Stratos DC).
+
+The Dockerfile was located in `/opt/docker` on **App Server 1 (`stapp01`)**. The initial Docker build failed because the Dockerfile was not being read from the correct directory and attempts to overwrite it encountered permission issues.
+
+The Dockerfile was corrected, and the image was built successfully using the existing Apache HTTP Server base image.
+
+## 🎯 Task Objectives
+
+- Troubleshoot the Docker build failure.
+- Fix the Dockerfile while preserving valid configuration.
+- Keep the original base image, `httpd:2.4.43`.
+- Configure Apache to listen on port `8080`.
+- Enable the required SSL modules and SSL configuration.
+- Copy the existing SSL certificate, private key, and HTML page into the image.
+- Build the Docker image successfully.
+
+## 🛠️ Technologies Used
+
+- Docker
+- Dockerfile
+- Apache HTTP Server
+- Linux command line
+- SSH
+- `sed` for configuration editing
+- SSL/TLS configuration
+
+## 🖥️ Environment
+
+| Setting | Value |
+|---|---|
+| Datacenter | Stratos DC |
+| Server | App Server 1 |
+| Hostname | `stapp01` |
+| User | `tony` |
+| Dockerfile location | `/opt/docker/Dockerfile` |
+| Base image | `httpd:2.4.43` |
+| Image name | `nautilus-app` |
+| Apache listening port | `8080` |
+
+## 🔍 Problem Description
+
+The initial build attempt failed because Docker could not find a Dockerfile in the current directory.
+
+```text
+ERROR: failed to build: failed to solve:
+failed to read dockerfile:
+open Dockerfile: no such file or directory
+```
+
+An attempt to write the Dockerfile directly also failed due to insufficient permissions:
+
+```text
+-bash: /opt/docker/Dockerfile: Permission denied
+```
+
+The solution was to navigate to `/opt/docker`, use `sudo tee` to write the Dockerfile with the necessary permissions, and build the image from the correct directory.
+
+## 🔧 Solution Implemented
+
+### 1. Connect to App Server 1
+
+```bash
+ssh tony@stapp01
+```
+
+### 2. Navigate to the Docker directory
+
+```bash
+cd /opt/docker
+```
+
+### 3. Correct the Dockerfile
+
+The corrected Dockerfile uses the original base image and retains the required Apache, SSL, certificate, key, and HTML configuration.
+
+```dockerfile
+FROM httpd:2.4.43
+
+RUN sed -i "s/Listen 80/Listen 8080/g" /usr/local/apache2/conf/httpd.conf
+
+RUN sed -i '/LoadModule\ ssl_module modules\/mod_ssl.so/s/^#//g' conf/httpd.conf
+
+RUN sed -i '/LoadModule\ socache_shmcb_module modules\/mod_socache_shmcb.so/s/^#//g' conf/httpd.conf
+
+RUN sed -i '/Include\ conf\/extra\/httpd-ssl.conf/s/^#//g' conf/httpd.conf
+
+COPY certs/server.crt /usr/local/apache2/conf/server.crt
+
+COPY certs/server.key /usr/local/apache2/conf/server.key
+
+COPY html/index.html /usr/local/apache2/htdocs/index.html
+```
+
+To write the file with elevated permissions:
+
+```bash
+sudo tee /opt/docker/Dockerfile <<'EOF'
+FROM httpd:2.4.43
+
+RUN sed -i "s/Listen 80/Listen 8080/g" /usr/local/apache2/conf/httpd.conf
+
+RUN sed -i '/LoadModule\ ssl_module modules\/mod_ssl.so/s/^#//g' conf/httpd.conf
+
+RUN sed -i '/LoadModule\ socache_shmcb_module modules\/mod_socache_shmcb.so/s/^#//g' conf/httpd.conf
+
+RUN sed -i '/Include\ conf\/extra\/httpd-ssl.conf/s/^#//g' conf/httpd.conf
+
+COPY certs/server.crt /usr/local/apache2/conf/server.crt
+
+COPY certs/server.key /usr/local/apache2/conf/server.key
+
+COPY html/index.html /usr/local/apache2/htdocs/index.html
+EOF
+```
+
+### 4. Build the Docker image
+
+Run the build command from `/opt/docker`:
+
+```bash
+sudo docker build -t nautilus-app .
+```
+
+The build completed successfully, with all eight Dockerfile build steps completed and the image exported.
+
+## 🖼️ Previews and Execution Evidence
+
+### Preview 1 — Dockerfile Location
+
+```text
+[tony@stapp01 docker]$
+```
+
+**Result:** The terminal is in the `/opt/docker` directory, where the Dockerfile and build context are located.
+
+### Preview 2 — Apache Configuration
+
+```dockerfile
+FROM httpd:2.4.43
+
+RUN sed -i "s/Listen 80/Listen 8080/g" /usr/local/apache2/conf/httpd.conf
+```
+
+**Result:** The original Apache base image is retained, and the listening port is configured to use `8080`.
+
+### Preview 3 — SSL and Application Files
+
+```dockerfile
+COPY certs/server.crt /usr/local/apache2/conf/server.crt
+
+COPY certs/server.key /usr/local/apache2/conf/server.key
+
+COPY html/index.html /usr/local/apache2/htdocs/index.html
+```
+
+**Result:** The existing certificate, private key, and HTML application page are copied into their intended locations in the image.
+
+### Preview 4 — Successful Docker Build
+
+The actual terminal output showed:
+
+```text
+[+] Building 11.0s (13/13) FINISHED
+
+[8/8] COPY html/index.html /usr/local/apache2/htdocs/index.html
+
+=> exporting to image
+=> writing image sha256:3af3dc36d42...
+=> naming to docker.io/library/nautilus-app
+```
+
+**Result:** The Docker image `nautilus-app` was built successfully.
+
+*Note: The image hash above is shortened to match the supplied terminal excerpt.*
+
+## 🧪 Verification
+
+To verify that the image exists:
+
+```bash
+sudo docker images nautilus-app
+```
+
+To inspect the image configuration:
+
+```bash
+sudo docker image inspect nautilus-app
+```
+
+These are additional verification commands; the supplied build output already confirms that Docker successfully created and named the image.
+
+## 🔐 Important Notes
+
+- The original base image, `httpd:2.4.43`, was preserved.
+- The existing application HTML file was not replaced with new content.
+- The required SSL files were copied from the existing build context.
+- The Dockerfile was written using elevated permissions.
+- The image was built from the correct directory.
+- A successful image build does not by itself prove that Apache starts correctly or that HTTPS connections work; those would require separate runtime tests.
+
+## 🏁 Conclusion
+
+The Dockerfile troubleshooting task was completed successfully. The permission issue and incorrect build-directory issue were addressed, the required configuration was preserved, and the Docker image `nautilus-app` was built without errors.
+
+**Final status: Docker image build successful.**
 
