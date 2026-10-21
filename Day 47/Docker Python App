@@ -1,1 +1,58 @@
+Dockerizing and Deploying a Python App on App Server 3
+This guide provides an overview of the implementation steps, Docker configuration, and testing procedures used to complete the Python application deployment task on App Server 3 (stapp03).
 
+Task Overview
+The objective was to containerize an existing Python/Flask application residing on App Server 3, tag the image, launch it as a container with port mapping, and verify its response locally.
+
+Key Requirements
+Dockerfile Location: Created under /python_app/Dockerfile.
+
+Base Image: Python (using python:3.9-slim).
+
+Dependencies: Installed via /python_app/src/requirements.txt.
+
+Port Configuration: Exposed port 8089 and mapped it to host port 8099.
+
+Image Name: nautilus/python-app
+
+Container Name: pythonapp_nautilus
+
+Entrypoint Script: Executed server.py using CMD.
+
+Implementation Details
+1. Dockerfile Configuration
+The Dockerfile was set up inside /python_app to bundle the source files, install dependencies, and run the server with the appropriate host bindings (0.0.0.0) to allow external proxy/port mapping access:
+
+Dockerfile
+FROM python:3.9-slim
+
+WORKDIR /app
+
+COPY src/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ .
+
+EXPOSE 8089
+
+CMD ["python", "server.py", "--host=0.0.0.0", "--port=8089"]
+2. Build and Deployment Commands
+Images were built and containers were run on App Server 3 (banner@stapp03) using the following sequence:
+
+Build the Image:
+
+Bash
+sudo docker build -t nautilus/python-app .
+Run the Container:
+
+Bash
+sudo docker run -d --name pythonapp_nautilus -p 8099:8089 nautilus/python-app
+Verification and Testing
+To verify that the application container is responding successfully through the mapped port, run the curl test against the host port:
+
+Bash
+curl http://localhost:8099/
+Expected Output:
+
+Plaintext
+Welcome to xFusionCorp Industries!
