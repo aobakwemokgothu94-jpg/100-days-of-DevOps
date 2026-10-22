@@ -1,1 +1,68 @@
+Kubernetes Pod Deployment - pod-nginx
+This README documents the task configuration, deployment steps, and verification process for creating the pod-nginx Kubernetes pod as required by the Nautilus DevOps team.
 
+Task Requirements
+Pod Name: pod-nginx
+
+Image: nginx:latest
+
+Label: app=nginx_app
+
+Container Name: nginx-container
+
+Configuration File (pod.yaml)
+YAML
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nginx
+  labels:
+    app: nginx_app
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+Deployment Steps
+Create or update the manifest file on the jump-host:
+
+Bash
+cat <<EOF > pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-nginx
+  labels:
+    app: nginx_app
+spec:
+  containers:
+  - name: nginx-container
+    image: nginx:latest
+EOF
+Delete any existing conflicting pod instance and apply the new configuration:
+
+Bash
+kubectl delete pod pod-nginx --ignore-not-found=true
+kubectl apply -f pod.yaml
+Verification and Previews
+1. Check Pod Status and Details
+Run the following command to verify that the pod is running and properly scheduled:
+
+Bash
+kubectl get pod pod-nginx -o wide
+Expected Preview Output:
+
+Plaintext
+NAME        READY   STATUS    RESTARTS   AGE   IP           NODE        NOMINATED NODE   READINESS GATES
+pod-nginx   1/1     Running   0          5s    10.22.0.10   jump-host   <none>           <none>
+2. Verify Exact Specifications (Labels, Container Name, Image)
+Run the following custom JSONPath query to confirm all parameters match the task criteria precisely:
+
+Bash
+kubectl get pod pod-nginx -o jsonpath='{"Pod Name: "}{.metadata.name}{"\n"}{"Labels: "}{.metadata.labels}{"\n"}{"Container Name: "}{.spec.containers[0].name}{"\n"}{"Image: "}{.spec.containers[0].image}{"\n"}'
+Expected Preview Output:
+
+Plaintext
+Pod Name: pod-nginx
+Labels: {"app":"nginx_app"}
+Container Name: nginx-container
+Image: nginx:latest
