@@ -1,1 +1,31 @@
+# Kubernetes Task: Create Deployment for httpd
 
+## Task Description
+The Nautilus DevOps team is delving into Kubernetes for app management. One team member needs to create a deployment following these specifications:
+- **Deployment Name:** `httpd`
+- **Application Image:** `httpd:latest` (with tag explicitly specified)
+
+---
+
+## Solution / Commands Executed
+
+1. Create the deployment using `kubectl`:
+   ```bash
+   kubectl create deployment httpd --image=httpd:latest
+Verify the deployment and running pods:
+
+Bash
+kubectl get deployments
+kubectl get pods
+Previews / Output Verification
+Plaintext
+thor@jump-host ~$ kubectl create deployment httpd --image=httpd:latest
+deployment.apps/httpd created
+
+thor@jump-host ~$ kubectl get deployments
+NAME    READY   UP-TO-DATE   AVAILABLE   AGE
+httpd   1/1     1            1           10s
+
+thor@jump-host ~$ kubectl get pods
+NAME                     READY   STATUS    RESTARTS   AGE
+httpd-6c755866c7-m9s7x   1/1     Running   0          10s
