@@ -1,1 +1,167 @@
+# Kubernetes Pod Resource Requests and Limits
 
+## 1. Task Overview
+
+The objective of this task was to create a Kubernetes pod named `httpd-pod` with a container named `httpd-container`, using the `httpd:latest` image.
+
+Container-level CPU and memory requests and limits were configured to help manage resource allocation within the Kubernetes cluster.
+
+## 2. Requirements
+
+| Setting | Required value |
+|---|---|
+| Pod name | `httpd-pod` |
+| Container name | `httpd-container` |
+| Container image | `httpd:latest` |
+| CPU request | `100m` |
+| Memory request | `15Mi` |
+| CPU limit | `100m` |
+| Memory limit | `20Mi` |
+| Namespace | `default` |
+
+## 3. Create the Pod Manifest
+
+The following YAML manifest defines the pod and its container-level resource configuration.
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: httpd-pod
+spec:
+  containers:
+    - name: httpd-container
+      image: httpd:latest
+      resources:
+        requests:
+          memory: "15Mi"
+          cpu: "100m"
+        limits:
+          memory: "20Mi"
+          cpu: "100m"
+```
+
+The manifest was saved to `/tmp/httpd-pod.yaml`.
+
+## 4. Deploy the Pod
+
+The pod was created using `kubectl apply`.
+
+```bash
+kubectl apply -f /tmp/httpd-pod.yaml
+```
+
+### Preview: Actual Terminal Output
+
+```text
+pod/httpd-pod created
+```
+
+This confirms that Kubernetes accepted the pod creation request.
+
+## 5. Verify Pod Configuration
+
+The following command was used to inspect the pod, its container, and its resource settings.
+
+```bash
+kubectl describe pod httpd-pod
+```
+
+### Preview: Actual Terminal Output
+
+```text
+Name:             httpd-pod
+Namespace:        default
+Node:             jump-host/10.244.81.20
+Status:           Running
+
+Containers:
+  httpd-container:
+    Image:          httpd:latest
+    State:          Running
+    Ready:          True
+    Restart Count:  0
+
+    Limits:
+      cpu:     100m
+      memory:  20Mi
+
+    Requests:
+      cpu:        100m
+      memory:     15Mi
+
+QoS Class:        Burstable
+```
+
+The output confirms that the container uses the requested image and that its CPU and memory requests and limits match the task requirements.
+
+## 6. Verify Pod Status
+
+The pod status was checked using:
+
+```bash
+kubectl get pod httpd-pod
+```
+
+### Preview: Actual Terminal Output
+
+```text
+NAME        READY   STATUS    RESTARTS   AGE
+httpd-pod   1/1     Running   0          20s
+```
+
+**Verification results:**
+
+- `READY 1/1` — the container is ready.
+- `STATUS Running` — the pod is running.
+- `RESTARTS 0` — no container restarts were reported.
+
+## 7. Final Configuration Summary
+
+| Requirement | Actual configuration | Result |
+|---|---|---|
+| Pod name | `httpd-pod` | Passed |
+| Container name | `httpd-container` | Passed |
+| Image | `httpd:latest` | Passed |
+| CPU request | `100m` | Passed |
+| Memory request | `15Mi` | Passed |
+| CPU limit | `100m` | Passed |
+| Memory limit | `20Mi` | Passed |
+| Pod status | `Running` | Passed |
+| Container readiness | `1/1` | Passed |
+
+## 8. Conclusion
+
+The `httpd-pod` pod was successfully created on the Kubernetes cluster using the `httpd:latest` image. The container-level CPU and memory requests and limits were configured according to the task specifications.
+
+The verification output confirmed that the pod was running, the container was ready, and no restarts had occurred at the time of inspection.
+
+**Final status:** The requested pod configuration and runtime checks passed.
+
+## 9. Evidence for Submission
+
+Capture screenshots from the actual terminal showing:
+
+1. The `kubectl apply -f /tmp/httpd-pod.yaml` command and successful creation output.
+2. The `kubectl describe pod httpd-pod` output showing the image, requests, and limits.
+3. The `kubectl get pod httpd-pod` output showing `1/1 Running`.
+
+These previews reproduce the terminal output shared during the task. They are not screenshots; capture actual terminal screenshots separately if required by the lab platform.
+
+Previews at a glance
+Preview 1 — Pod creation
+
+pod/httpd-pod created
+
+
+
+Preview 2 — Resource configuration
+
+Requests: CPU 100m, Memory 15Mi
+Limits:   CPU 100m, Memory 20Mi
+
+
+
+Preview 3 — Final status
+1/1 Running
+Zero restarts in the output you provided.
