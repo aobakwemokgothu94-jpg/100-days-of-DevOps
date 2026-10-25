@@ -1,0 +1,32 @@
+Rolling Update of Nginx Deployment to v1.19
+This task involved performing a rolling update on an existing Kubernetes deployment (nginx-deployment) to update its container image to nginx:1.19.
+
+Task Overview
+Cluster Environment: KodeKloud Engineer jump-host / Kubernetes cluster.
+
+Target Object: Deployment (nginx-deployment).
+
+Objective: Update the deployment container image to nginx:1.19 using a rolling update mechanism and ensure all pods successfully transition and become operational.
+
+Execution Steps
+Identify Container Name:
+Query the deployment template to find the exact container name defined under the pod specification:
+
+Bash
+kubectl get deployment nginx-deployment -o jsonpath='{.spec.template.spec.containers[*].name}'
+(Result identified: nginx-container)
+
+Execute Rolling Update:
+Update the deployment's container image to nginx:1.19:
+
+Bash
+kubectl set image deployment/nginx-deployment nginx-container=nginx:1.19
+Verify Rollout Status:
+Monitor the progress of the rolling update until all pods are running and healthy:
+
+Bash
+kubectl rollout status deployment/nginx-deployment
+Verification & Results
+Rollout Status: deployment "nginx-deployment" successfully rolled out
+
+Status Result: CONGRATULATIONS!!!! You have successfully completed the challenge.
