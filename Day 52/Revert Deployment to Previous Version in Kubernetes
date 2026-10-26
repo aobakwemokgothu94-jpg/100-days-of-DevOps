@@ -1,0 +1,100 @@
+# Kubernetes Deployment Rollback — Nautilus DevOps
+
+## Task Overview
+
+The Nautilus DevOps team deployed a new application release, but a customer reported a bug related to the release. The objective was to roll back the existing Kubernetes deployment, `nginx-deployment`, to its previous revision.
+
+The `kubectl` utility on the jump-host was already configured to communicate with the Kubernetes cluster.
+
+## Objectives
+
+- Roll back `nginx-deployment` to its previous revision.
+- Verify that the rollout completes successfully.
+- Confirm that the deployment has all replicas available.
+- Inspect the deployment's rollout history.
+
+## Environment
+
+| Component | Details |
+|---|---|
+| Platform | Kubernetes |
+| Host | `jump-host` |
+| Deployment | `nginx-deployment` |
+| Command-line tool | `kubectl` |
+| Target | Previous deployment revision |
+
+## Step 1: Roll Back the Deployment
+
+Command executed:
+
+```bash
+kubectl rollout undo deployment/nginx-deployment
+```
+
+### Output Preview
+
+```text
+deployment.apps/nginx-deployment rolled back
+```
+
+**Result:** The rollback command completed successfully.
+
+## Step 2: Verify the Rollout
+
+Command executed:
+
+```bash
+kubectl rollout status deployment/nginx-deployment
+```
+
+### Output Preview
+
+```text
+deployment "nginx-deployment" successfully rolled out
+```
+
+**Result:** Kubernetes confirmed that the deployment rollout completed successfully.
+
+## Step 3: Check Deployment Health
+
+Command executed:
+
+```bash
+kubectl get deployment nginx-deployment
+```
+
+### Output Preview
+
+```text
+NAME               READY   UP-TO-DATE   AVAILABLE   AGE
+nginx-deployment   3/3     3            3           78s
+```
+
+**Result:** All three replicas were ready, up to date, and available.
+
+## Step 4: Inspect Rollout History
+
+Command executed:
+
+```bash
+kubectl rollout history deployment/nginx-deployment
+```
+
+### Output Preview
+
+```text
+deployment.apps/nginx-deployment
+REVISION  CHANGE-CAUSE
+2         kubectl set image deployment nginx-deployment nginx-container=nginx:alpine --record=true
+3         <none>
+```
+
+**Result:** The rollout history displayed revisions 2 and 3. Revision 2 records the image change to `nginx:alpine`; revision 3 has no recorded change cause. The successful rollback command and rollout status confirm that the rollback operation completed.
+
+## Commands Summary
+
+```bash
+kubectl rollout undo deployment/nginx-deployment
+kubectl rollout status deployment/nginx-deployment
+kubectl get deployment nginx-deployment
+kub
