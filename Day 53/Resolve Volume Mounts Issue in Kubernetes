@@ -1,0 +1,138 @@
+# Kubernetes Lab: Fix Nginx and PHP-FPM Integration
+
+## 1. Task Overview
+
+The objective of this task was to troubleshoot and configure a Kubernetes pod running Nginx and PHP-FPM, ensure that the web server could execute PHP files, and make the website accessible through the lab's Website button.
+
+The task involved inspecting the Kubernetes pod and ConfigMap, checking the Nginx configuration, placing the provided `index.php` file in the shared web directory, and verifying that PHP was processed successfully.
+
+## 2. Environment
+
+- **Platform:** Kubernetes
+- **Pod:** `nginx-phpfpm`
+- **ConfigMap:** `nginx-config`
+- **Web server container:** `nginx-container`
+- **PHP container:** `php-fpm-container`
+- **Nginx listening port:** `8099`
+- **Nginx document root:** `/var/www/html`
+- **PHP-FPM shared directory:** `/usr/share/nginx/html`
+- **PHP version verified:** `7.2.34`
+
+## 3. Problem Identified
+
+The website initially displayed a **File not found** error when accessed through the lab's Website button.
+
+The pod used two containers sharing an `emptyDir` volume. Nginx served files from `/var/www/html`, while PHP-FPM mounted the same shared volume at `/usr/share/nginx/html`.
+
+This meant the PHP-FPM script path needed to match the directory visible inside the PHP-FPM container.
+
+## 4. Configuration and Troubleshooting
+
+The following checks and actions were performed during troubleshooting:
+
+1. Inspected the `nginx-phpfpm` pod and its container configuration.
+2. Reviewed the `nginx-config` ConfigMap.
+3. Verified that PHP-FPM was running and ready to accept connections.
+4. Copied the supplied `index.php` file into the Nginx document root.
+5. Updated the FastCGI script path in the Nginx configuration to use the PHP-FPM container's shared-directory path.
+6. Recreated the standalone pod after it had been deleted during troubleshooting.
+7. Verified the PHP website using the lab's Website button.
+
+**Important:** Because the pod was standalone rather than managed by a Deployment, deleting it did not automatically recreate it. The pod therefore had to be recreated manually.
+
+## 5. PHP Test File
+
+The supplied PHP file contained:
+
+```php
+<?php
+phpinfo();
+?>
+```
+
+This script displays PHP runtime and configuration information, making it useful for verifying that PHP requests are reaching PHP-FPM and being executed.
+
+## 6. Verification Results
+
+### Preview 1: PHP Information Page
+
+The website successfully displayed the PHP information page.
+
+**Observed output:**
+
+```text
+PHP Version 7.2.34
+Server API: FPM/FastCGI
+php-fpm: active
+System: Linux nginx-phpfpm
+```
+
+This confirms that the website was executing PHP through the FastCGI/PHP-FPM interface.
+
+### Preview 2: PHP Configuration
+
+The PHP information page displayed configuration sections including:
+
+- Core PHP directives
+- CGI and FastCGI settings
+- PHP extension information
+- PHP runtime configuration
+- PHP-FPM status
+
+### Preview 3: Kubernetes Components
+
+The configured environment used the following components:
+
+```text
+Pod: nginx-phpfpm
+|
++-- nginx-container
+|   +-- Nginx configuration from nginx-config
+|   +-- Web root: /var/www/html
+|
++-- php-fpm-container
+|   +-- PHP-FPM service
+|   +-- Shared files: /usr/share/nginx/html
+|
++-- Shared emptyDir volume
+```
+
+The two directory paths refer to the same shared volume from the perspective of their respective containers.
+
+## 7. Evidence and Outputs
+
+The following evidence was obtained during the task:
+
+| Check | Result |
+|---|---|
+| Nginx configuration syntax | Passed (`nginx -t` reported syntax OK) |
+| PHP-FPM service | Active and ready to handle connections |
+| PHP test file | `index.php` containing `phpinfo()` |
+| PHP execution | PHP information page displayed |
+| PHP version | 7.2.34 |
+| Server API | FPM/FastCGI |
+
+## 8. Learning Outcomes
+
+This task demonstrated how to:
+
+- Inspect Kubernetes pods and container configurations.
+- Use ConfigMaps to supply application configuration.
+- Share files between containers with an `emptyDir` volume.
+- Configure Nginx to forward PHP requests to PHP-FPM.
+- Understand how filesystem paths differ between containers sharing a volume.
+- Troubleshoot a PHP `File not found` error.
+- Recognize that standalone Kubernetes pods do not automatically return after deletion.
+- Verify PHP execution using the `phpinfo()` test page.
+
+## 9. Security Considerations
+
+The `phpinfo()` page exposes PHP version details, system information, and configuration settings. It is suitable for temporary lab verification, but it should be removed or disabled in a production environment.
+
+PHP 7.2 is also an outdated release. Production deployments should use a currently supported PHP version and appropriate security updates.
+
+## 10. Conclusion
+
+The Nginx and PHP-FPM integration was tested successfully. The lab's Website button displayed the PHP 7.2.34 information page, confirming that PHP execution through FPM/FastCGI was working at the time of verification.
+
+The task provided practical experience with Kubernetes pod troubleshooting, ConfigMap-based configuration, shared volumes, Nginx FastCGI settings, and PHP-FPM verification.
