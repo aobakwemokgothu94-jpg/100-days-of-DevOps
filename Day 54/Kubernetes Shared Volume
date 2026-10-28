@@ -1,0 +1,89 @@
+# Kubernetes Shared Volume Pod Architecture
+
+This repository contains the deployment layout configuration for orchestrating a multi-container Pod structure sharing data inside a single runtime space. The implementation replicates real-world scenarios where independent functional containers within a single Pod boundary exchange processing data using high-speed temporary volumes.
+
+## 🏗️ Architecture Design Overview
+
+The solution instantiates a standard **Pod** enclosing two separate decoupled runtime processes utilizing an explicit **`emptyDir`** volume abstraction.
+
+Use code with caution.
+┌───────────────────────────────────────────────┐
+│            volume-share-datacenter            │
+│                                               │
+│  ┌───────────────────┐    ┌────────────────┐  │
+│  │ volume-container- │    │volume-container│  │
+│  │  datacenter-1     │    │ datacenter-2   │  │
+│  └─────────┬─────────┘    └────────┬───────┘  │
+│            │                       │          │
+│     (Mount: /tmp/official)  (Mount: /tmp/games)
+│            │                       │          │
+│            └───────────┬───────────┘          │
+│                        ▼                      │
+│              [ emptyDir: volume-share ]       │
+└───────────────────────────────────────────────┘
+
+### Pod Node Component Details
+*   **Pod Name:** `volume-share-datacenter`
+*   **Volume Implementation:** Name: `volume-share`, Type: `emptyDir` (ephemeral node filesystem space bound to the pod lifetime cycle).
+*   **Container 1 (`volume-container-datacenter-1`):** Pulls `fedora:latest`, maps directory at `/tmp/official`, and stays active with an explicit script sleep command.
+*   **Container 2 (`volume-container-datacenter-2`):** Pulls `fedora:latest`, maps directory at `/tmp/games`, and stays active with an explicit script sleep command.
+
+---
+
+## 🛠️ Deployment Configuration Specification
+
+The complete resource layout is declared below in `pod-volume-share.yaml`:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: volume-share-datacenter
+spec:
+  volumes:
+    - name: volume-share
+      emptyDir: {}
+  containers:
+    - name: volume-container-datacenter-1
+      image: fedora:latest
+      command: ["/bin/sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: volume-share
+          mountPath: /tmp/official
+    - name: volume-container-datacenter-2
+      image: fedora:latest
+      command: ["/bin/sh", "-c", "sleep 3600"]
+      volumeMounts:
+        - name: volume-share
+          mountPath: /tmp/games
+```
+
+---
+
+## 📊 Step-by-Step Execution & Verification Loop
+
+Follow this explicit terminal loop sequence on the cluster manager host terminal (`jump-host`) to deploy and verify the data transmission integrity layer:
+
+```bash
+# 1. Apply the manifest file to build the resource layer
+kubectl apply -f pod-volume-share.yaml
+
+# 2. Monitor container ready states until status marks move to Running
+kubectl get pod volume-share-datacenter
+
+# 3. Interactively execute into the first container to create the data payload file
+kubectl exec -it volume-share-datacenter -c volume-container-datacenter-1 -- /bin/sh -c "echo 'Welcome to xFusionCorp Industries' > /tmp/official/official.txt"
+
+# 4. Interactively execute into the second container to cross-verify the file sync state
+kubectl exec -it volume-share-datacenter -c volume-container-datacenter-2 -- cat /tmp/games/official.txt
+```
+
+### Complete Telemetry Logs Expected Output
+```text
+pod/volume-share-datacenter created
+
+NAME                      READY   STATUS    RESTARTS   AGE
+volume-share-datacenter   2/2     Running   0          10s
+
+Welcome to xFusionCorp Industries
+```
