@@ -1,0 +1,175 @@
+# Nautilus Industries — Kubernetes Sidecar Logging Pattern
+
+## Project Overview
+
+This task implements the Sidecar pattern in Kubernetes by deploying an Nginx web server alongside a dedicated sidecar container. Both containers share an `emptyDir` volume named `shared-logs`, mounted at `/var/log/nginx`.
+
+The Nginx container serves web content, while the Ubuntu sidecar repeatedly attempts to read the Nginx access and error logs and prints their contents to its standard output.
+
+## Objectives
+
+- Create a Pod named `webserver`.
+- Define an `emptyDir` volume named `shared-logs`.
+- Deploy the main container using `nginx:latest`.
+- Deploy a native sidecar using `ubuntu:latest`.
+- Configure the sidecar with `restartPolicy: Always`.
+- Run the specified log-reading loop.
+- Mount the shared volume in both containers.
+- Verify that both containers are running.
+
+## Kubernetes Configuration
+
+The Pod was created using a YAML manifest with the following configuration:
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: webserver
+spec:
+  volumes:
+    - name: shared-logs
+      emptyDir: {}
+  initContainers:
+    - name: sidecar-container
+      image: ubuntu:latest
+      restartPolicy: Always
+      command:
+        - sh
+        - -c
+        - "while true; do cat /var/log/nginx/access.log /var/log/nginx/error.log; sleep 30; done"
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/nginx
+  containers:
+    - name: nginx-container
+      image: nginx:latest
+      volumeMounts:
+        - name: shared-logs
+          mountPath: /var/log/nginx
+```
+
+## Deployment Commands
+
+### 1. Apply the manifest
+
+```bash
+kubectl apply -f /tmp/webserver.yaml
+```
+
+**Observed output:**
+
+```text
+pod/webserver created
+```
+
+### 2. Verify Pod status
+
+```bash
+kubectl get pod webserver
+```
+
+**Observed output:**
+
+```text
+NAME        READY   STATUS    RESTARTS   AGE
+webserver   2/2     Running   0          11s
+```
+
+This confirms that both containers were ready and running at the time of the check, with zero restarts.
+
+### 3. Verify container states
+
+```bash
+kubectl get pod webserver -o jsonpath='{.status.initContainerStatuses[*].name}{"\n"}{.status.initContainerStatuses[*].state}{"\n"}{.status.containerStatuses[*].name}{"\n"}{.status.containerStatuses[*].state}{"\n"}'
+```
+
+**Observed output:**
+
+```text
+sidecar-container
+{"running":{"startedAt":"2026-10-29T05:13:12Z"}}
+nginx-container
+{"running":{"startedAt":"2026-10-29T05:13:16Z"}}
+```
+
+### 4. Inspect the Pod configuration
+
+```bash
+kubectl get pod webserver -o yaml
+```
+
+The resulting YAML confirmed:
+
+- Pod name: `webserver`
+- Namespace: `default`
+- Main container image: `nginx:latest`
+- Sidecar image: `ubuntu:latest`
+- Sidecar restart policy: `Always`
+- Shared volume: `shared-logs`
+- Volume type: `emptyDir`
+- Mount path in both containers: `/var/log/nginx`
+- Pod phase: `Running`
+- Pod readiness condition: `True`
+
+## Previews and Evidence
+
+### Preview 1 — Pod deployment
+
+The `kubectl apply` command returned `pod/webserver created`, confirming that Kubernetes accepted the manifest and created the Pod.
+
+### Preview 2 — Running containers
+
+The Pod status showed `2/2 Running`, and the detailed container status showed both `sidecar-container` and `nginx-container` in the running state.
+
+### Preview 3 — Shared volume
+
+The Pod YAML confirmed that `shared-logs` is an `emptyDir` volume mounted at `/var/log/nginx` in both containers.
+
+### Preview 4 — Sidecar output
+
+Command:
+
+```bash
+kubectl logs webserver -c sidecar-container
+```
+
+**Observed output excerpt:**
+
+```text
+cat: /var/log/nginx/access.log: No such file or directory
+cat: /var/log/nginx/error.log: No such file or directory
+2026/10/29 05:13:16 [notice] 1#1: using the "epoll" event method
+2026/10/29 05:13:16 [notice] 1#1: nginx/1.31.8
+2026/10/29 05:13:16 [notice] 1#1: start worker processes
+```
+
+The sidecar was running and producing output. However, the missing-file messages show that the access and error logs were not available at the expected paths in the shared volume during this check.
+
+## Results Summary
+
+| Requirement | Result |
+|---|---|
+| Create `webserver` Pod | Passed |
+| Create `shared-logs` `emptyDir` volume | Passed |
+| Configure Nginx container | Passed |
+| Configure native sidecar container | Passed |
+| Set sidecar `restartPolicy: Always` | Passed |
+| Configure the required log-reading loop | Passed |
+| Mount the shared volume in both containers | Passed |
+| Verify both containers are running | Passed |
+| Verify log files are available in the shared volume | Not confirmed |
+
+## Technical Note
+
+The shared volume is mounted over `/var/log/nginx` in the Nginx container. Since an `emptyDir` starts empty, this mount hides the image's original log directory. The sidecar's output confirms that the expected log files were missing at the time of inspection.
+
+Therefore, the Pod configuration and running states were verified, but successful access to the actual log files was not established. The specified loop prints logs to the sidecar's standard output; it does not independently forward them to an external log-aggregation service.
+
+## Conclusion
+
+The Kubernetes Sidecar pattern was implemented with a running Nginx container, a native Ubuntu sidecar, and a shared `emptyDir` volume. The Pod YAML and status output verified the required configuration and confirmed that both containers were running.
+
+The log-file availability issue remains a separate limitation to address if actual shared-log collection is required.
+
+**Task status: Pod configuration and container-running requirements verified. Log collection through the shared volume remains unverified.**
