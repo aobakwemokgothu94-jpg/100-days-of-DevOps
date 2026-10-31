@@ -1,0 +1,153 @@
+# Kubernetes Pod – Print Environment Variables Greeting
+
+## Project Overview
+
+This project demonstrates creating and running a Kubernetes Pod that uses environment variables to generate a greeting message.
+
+The task was completed on the Nautilus Kubernetes cluster using the configured `kubectl` utility on the jump-host.
+
+## Objectives
+
+- Create a Pod named `print-envars-greeting`.
+- Configure a container named `print-env-container`.
+- Use the `bash` container image.
+- Define three environment variables.
+- Execute the specified shell command.
+- Set the restart policy to `Never`.
+- Verify successful execution through Kubernetes logs.
+
+## Technologies Used
+
+- Kubernetes
+- kubectl
+- YAML
+- Bash
+- Linux command line
+
+## Kubernetes Configuration
+
+**Manifest:** `/tmp/print-envars-greeting.yaml`
+
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: print-envars-greeting
+spec:
+  restartPolicy: Never
+  containers:
+    - name: print-env-container
+      image: bash
+      env:
+        - name: GREETING
+          value: "Welcome to"
+        - name: COMPANY
+          value: "DevOps"
+        - name: GROUP
+          value: "Datacenter"
+      command:
+        - /bin/sh
+        - -c
+        - 'echo "$(GREETING) $(COMPANY) $(GROUP)"'
+```
+
+## Deployment Procedure
+
+### 1. Apply the Kubernetes manifest
+
+```bash
+kubectl apply -f /tmp/print-envars-greeting.yaml
+```
+
+Result:
+
+```text
+pod/print-envars-greeting created
+```
+
+### 2. Verify Pod status
+
+```bash
+kubectl get pod print-envars-greeting
+```
+
+Actual result:
+
+```text
+NAME                    READY   STATUS      RESTARTS   AGE
+print-envars-greeting   0/1     Completed   0          10s
+```
+
+### 3. Inspect application logs
+
+```bash
+kubectl logs -f print-envars-greeting
+```
+
+Actual output:
+
+```text
+Welcome to DevOps Datacenter
+```
+
+## Environment Variables
+
+| Variable | Value |
+|---|---|
+| GREETING | Welcome to |
+| COMPANY | DevOps |
+| GROUP | Datacenter |
+
+## Execution Details
+
+The container executes the specified shell command using `/bin/sh`.
+
+The environment variables provide the individual greeting components, which are combined into one output message.
+
+The `Never` restart policy ensures that Kubernetes does not automatically restart the container after it exits.
+
+## Project Previews
+
+### Preview 1 – Pod creation
+
+```text
+pod/print-envars-greeting created
+```
+
+### Preview 2 – Pod execution status
+
+```text
+NAME                    READY   STATUS      RESTARTS
+print-envars-greeting   0/1     Completed   0
+```
+
+### Preview 3 – Successful application output
+
+```text
+Welcome to DevOps Datacenter
+```
+
+## Final Verification
+
+| Requirement | Result |
+|---|---|
+| Pod created | Successful |
+| Container configured | Successful |
+| Bash image | Configured |
+| Three environment variables | Configured |
+| Required command | Executed |
+| Restart policy | Never |
+| Pod status | Completed |
+| Expected output | Verified |
+
+## Conclusion
+
+The Kubernetes environment-variable greeting task was successfully completed.
+
+The Pod `print-envars-greeting` was deployed, executed its shell command, and produced the expected greeting:
+
+**Welcome to DevOps Datacenter**
+
+The Pod reached `Completed` status with zero restarts, confirming successful execution.
+
+**Project Status: COMPLETED**
