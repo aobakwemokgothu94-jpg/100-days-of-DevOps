@@ -1,0 +1,247 @@
+# Grafana Deployment on Kubernetes – Nautilus DevOps Lab
+
+## Project Overview
+
+The Nautilus DevOps team required Grafana to be deployed on a Kubernetes cluster to collect and analyze application analytics.
+
+The objective was to deploy Grafana using a Kubernetes Deployment and expose the application externally through a NodePort service.
+
+The deployment was successfully created, the Grafana pod reached the Running state, and the login page was verified with an HTTP 200 OK response.
+
+## Objectives
+
+- Deploy Grafana on the Kubernetes cluster.
+- Create a Deployment named `grafana-deployment-nautilus`.
+- Use a Grafana container image.
+- Expose Grafana through a NodePort service.
+- Configure NodePort `32000`.
+- Verify the Grafana application and login page.
+
+## Environment and Tools
+
+| Component | Configuration |
+|---|---|
+| Platform | Nautilus DevOps Lab |
+| Container orchestration | Kubernetes |
+| Kubernetes distribution | K3s |
+| Kubernetes version | v1.34.1+k3s1 |
+| Container image | grafana/grafana:latest |
+| Deployment | grafana-deployment-nautilus |
+| Service | grafana-service-nautilus |
+| Service type | NodePort |
+| Application port | 3000 |
+| NodePort | 32000 |
+| Namespace | default |
+
+## 1. Create the Grafana Deployment
+
+The Grafana deployment was created using the official Grafana Docker image.
+
+### Command
+
+```bash
+kubectl create deployment grafana-deployment-nautilus \
+  --image=grafana/grafana:latest
+```
+
+### Terminal Output
+
+```text
+deployment.apps/grafana-deployment-nautilus created
+```
+
+The deployment instructs Kubernetes to run the Grafana application inside a container.
+
+## 2. Create the NodePort Service
+
+A NodePort service was created to expose Grafana on port 32000.
+
+### Command
+
+```bash
+kubectl expose deployment grafana-deployment-nautilus \
+  --name=grafana-service-nautilus \
+  --type=NodePort \
+  --port=3000 \
+  --target-port=3000
+```
+
+### Terminal Output
+
+```text
+service/grafana-service-nautilus exposed
+```
+
+The service initially receives an automatically assigned NodePort.
+
+The following command sets the required NodePort to 32000.
+
+```bash
+kubectl patch service grafana-service-nautilus \
+  -p '{"spec":{"ports":[{"port":3000,"targetPort":3000,"nodePort":32000}]}}'
+```
+
+### Terminal Output
+
+```text
+service/grafana-service-nautilus patched
+```
+
+## 3. Verify the Deployment and Pod
+
+The deployment, pod and service were inspected using:
+
+```bash
+kubectl get deployment grafana-deployment-nautilus
+kubectl get pods -o wide
+kubectl get service grafana-service-nautilus
+```
+
+### Actual Deployment Output
+
+```text
+NAME                          READY   UP-TO-DATE   AVAILABLE
+grafana-deployment-nautilus   1/1     1            1
+```
+
+### Actual Pod Output
+
+```text
+NAME                                           READY   STATUS    RESTARTS
+grafana-deployment-nautilus-6969bf96b4-mpbbg   1/1     Running   0
+
+IP          NODE
+10.22.0.9   jump-host
+```
+
+### Actual Service Output
+
+```text
+NAME                       TYPE       CLUSTER-IP     EXTERNAL-IP   PORT(S)
+grafana-service-nautilus   NodePort   10.43.77.237   <none>        3000:32000/TCP
+```
+
+The results confirmed that the Grafana pod was running and the service was exposing the application through the required NodePort.
+
+## 4. Verify Deployment Rollout
+
+The Kubernetes rollout was checked using:
+
+```bash
+kubectl rollout status deployment/grafana-deployment-nautilus
+```
+
+### Actual Output
+
+```text
+deployment "grafana-deployment-nautilus" successfully rolled out
+```
+
+The Kubernetes node was also checked:
+
+```bash
+kubectl get nodes -o wide
+```
+
+### Actual Node Output
+
+```text
+NAME        STATUS   ROLES           VERSION
+jump-host   Ready    control-plane   v1.34.1+k3s1
+```
+
+## 5. Verify the Grafana Login Page
+
+The Grafana login endpoint was tested from inside the Kubernetes cluster using a temporary curl container.
+
+### Command
+
+```bash
+kubectl run grafana-test --rm -i --restart=Never \
+  --image=curlimages/curl -- \
+  curl -I http://grafana-service-nautilus:3000/login
+```
+
+### Actual HTTP Response
+
+```text
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Type: text/html; charset=UTF-8
+X-Content-Type-Options: nosniff
+X-Frame-Options: deny
+Date: Sun, 01 Nov 2026 10:30:39 GMT
+```
+
+The temporary test pod was automatically deleted after the test completed.
+
+```text
+pod "grafana-test" deleted from default namespace
+```
+
+**Verification result:** HTTP 200 OK confirmed that Grafana's login page was responding successfully through the Kubernetes service.
+
+## 6. Application Access
+
+Grafana listens on container port 3000.
+
+The Kubernetes NodePort exposes the application on port 32000.
+
+The configured node IP was:
+
+```text
+10.244.221.28
+```
+
+The application access URL is:
+
+```text
+http://10.244.221.28:32000
+```
+
+External browser access depends on network reachability to the Kubernetes node.
+
+## 7. Final Verification Checklist
+
+- [x] Created Grafana deployment.
+- [x] Used the Grafana container image.
+- [x] Created NodePort service.
+- [x] Configured NodePort 32000.
+- [x] Confirmed deployment readiness.
+- [x] Confirmed Grafana pod status Running.
+- [x] Verified successful Kubernetes rollout.
+- [x] Tested Grafana login endpoint.
+- [x] Received HTTP 200 OK.
+- [x] Confirmed temporary test pod cleanup.
+
+## Project Outcome
+
+The Grafana application was successfully deployed on the Kubernetes cluster and exposed using a NodePort service.
+
+The deployment reached the desired ready state, and the Grafana login endpoint returned HTTP 200 OK during verification.
+
+This project demonstrates practical Kubernetes administration skills, including:
+
+- Kubernetes Deployments.
+- Container image deployment.
+- Kubernetes Services.
+- NodePort networking.
+- Pod and deployment monitoring.
+- Rollout verification.
+- Application endpoint testing.
+- Kubernetes command-line administration.
+
+## Conclusion
+
+The Nautilus DevOps Grafana deployment task was successfully completed and verified.
+
+The Grafana application is running inside Kubernetes and is exposed through the configured NodePort service on port 32000.
+
+**Project:** Grafana Kubernetes Deployment  
+**Platform:** Nautilus DevOps  
+**Application:** Grafana  
+**Deployment:** grafana-deployment-nautilus  
+**Service:** grafana-service-nautilus  
+**NodePort:** 32000  
+**Final Verification:** HTTP 200 OK  
+**Status:** Successfully completed
