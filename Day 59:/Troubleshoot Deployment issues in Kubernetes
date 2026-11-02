@@ -1,0 +1,237 @@
+# Nautilus DevOps — Redis Kubernetes Deployment Recovery
+
+## Project Overview
+
+The Nautilus DevOps team experienced an outage affecting an existing Redis application deployed on a Kubernetes cluster.
+
+The Redis Deployment, named `redis-deployment`, had stopped functioning after incorrect configuration changes were introduced.
+
+The objective was to investigate the failing pods, identify the configuration errors, repair the Deployment, and verify that the Redis application returned to a healthy running state.
+
+## Environment
+
+| Component | Configuration |
+|---|---|
+| Platform | Kubernetes |
+| Access host | jump-host |
+| Namespace | default |
+| Deployment | redis-deployment |
+| Container | redis-container |
+| Correct Docker image | redis:alpine |
+| ConfigMap | redis-config |
+| Container port | 6379 |
+| Desired replicas | 1 |
+
+## 1. Initial Investigation
+
+Inspected the Deployment and existing pods:
+
+```bash
+kubectl get deployment redis-deployment -o wide
+kubectl get pods -o wide
+kubectl describe deployment redis-deployment
+```
+
+### Initial Deployment Status
+
+```text
+NAME               READY   UP-TO-DATE   AVAILABLE
+redis-deployment   0/1     1            0
+```
+
+The pod was not running:
+
+```text
+NAME                                READY   STATUS
+redis-deployment-795ffcb56c-bf5n4   0/1     ContainerCreating
+```
+
+## 2. Identifying the Configuration Errors
+
+Kubernetes events revealed the first problem:
+
+```text
+Warning  FailedMount
+
+MountVolume.SetUp failed for volume "config":
+configmap "redis-cofig" not found
+```
+
+Listing the available ConfigMaps:
+
+```bash
+kubectl get configmaps
+```
+
+Output:
+
+```text
+NAME           DATA   AGE
+kube-root-ca.crt  1   77m
+redis-config     2    2m39s
+```
+
+The Deployment referenced `redis-cofig`, but the existing ConfigMap was named `redis-config`.
+
+The Deployment YAML also revealed an incorrect Docker image:
+
+```yaml
+image: redis:alpin
+```
+
+### Root Causes
+
+Two mistakes were identified:
+
+1. Incorrect ConfigMap reference: `redis-cofig` instead of `redis-config`.
+2. Incorrect Docker image tag: `redis:alpin` instead of `redis:alpine`.
+
+## 3. Applying the Fixes
+
+### Correcting the Redis image
+
+```bash
+kubectl set image deployment/redis-deployment \
+  redis-container=redis:alpine
+```
+
+Result:
+
+```text
+deployment.apps/redis-deployment image updated
+```
+
+### Correcting the ConfigMap reference
+
+```bash
+kubectl patch deployment redis-deployment \
+  --type=strategic \
+  -p '{"spec":{"template":{"spec":{"volumes":[{"name":"config","configMap":{"name":"redis-config"}}]}}}}'
+```
+
+Result:
+
+```text
+deployment.apps/redis-deployment patched
+```
+
+Both changes were applied directly to the existing Deployment.
+
+## 4. Deployment Verification
+
+Checked the rollout:
+
+```bash
+kubectl rollout status deployment/redis-deployment
+```
+
+Actual output:
+
+```text
+deployment "redis-deployment" successfully rolled out
+```
+
+Checked the Deployment:
+
+```bash
+kubectl get deployment redis-deployment
+```
+
+Actual output:
+
+```text
+NAME               READY   UP-TO-DATE   AVAILABLE
+redis-deployment   1/1     1            1
+```
+
+Checked the pods:
+
+```bash
+kubectl get pods -o wide
+```
+
+Actual output:
+
+```text
+NAME                                READY   STATUS    RESTARTS
+redis-deployment-5476b4ddd6-8cpdb   1/1     Running   0
+```
+
+Pod IP:
+
+```text
+10.22.0.9
+```
+
+## 5. Final Deployment Configuration
+
+The final Deployment inspection confirmed:
+
+```text
+Containers:
+  redis-container:
+    Image: redis:alpine
+    Port: 6379/TCP
+
+Volumes:
+  data:
+    Type: EmptyDir
+
+  config:
+    Type: ConfigMap
+    Name: redis-config
+```
+
+Deployment conditions:
+
+```text
+Available      True    MinimumReplicasAvailable
+Progressing    True    NewReplicaSetAvailable
+```
+
+## 6. Before and After Comparison
+
+| Configuration | Before | After |
+|---|---|---|
+| Redis image | redis:alpin | redis:alpine |
+| ConfigMap | redis-cofig | redis-config |
+| Deployment readiness | 0/1 | 1/1 |
+| Pod status | ContainerCreating | Running |
+| Pod restarts | 0 | 0 |
+| Available replicas | 0 | 1 |
+
+## 7. Skills Demonstrated
+
+- Kubernetes Deployment troubleshooting
+- Pod status and event investigation
+- ConfigMap identification and volume configuration
+- Container image correction
+- `kubectl set image`
+- `kubectl patch`
+- Kubernetes rolling updates
+- Deployment health verification
+- ReplicaSet lifecycle management
+
+## Conclusion
+
+The Redis application outage was successfully resolved.
+
+The investigation identified an incorrect ConfigMap reference and an invalid Redis image tag. Both issues were corrected without deleting the existing Deployment.
+
+Kubernetes successfully completed the rollout, created a healthy replacement pod, and restored the application to its desired replica count.
+
+**Final Result: SUCCESS**
+
+Deployment: `redis-deployment`
+
+Namespace: `default`
+
+Image: `redis:alpine`
+
+ConfigMap: `redis-config`
+
+Pod Status: `Running`
+
+Deployment Readiness: `1/1`
+
+The Redis Deployment is healthy and available again.
