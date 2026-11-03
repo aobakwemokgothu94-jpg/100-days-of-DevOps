@@ -1,0 +1,119 @@
+# Kubernetes Persistent Volume & Web Server Deployment (`pod-xfusion`)
+
+This project deploys a containerized Nginx web server on a Kubernetes cluster, backed by a persistent `hostPath` storage volume mapped to `/mnt/security`, and exposed externally via a NodePort service.
+
+---
+
+## 🏗️ Architecture & Resources
+
+1. **PersistentVolume (`pv-xfusion`)**
+   - **Storage Class:** `manual`
+   - **Capacity:** `5Gi`
+   - **Access Mode:** `ReadWriteOnce` (RWO)
+   - **Volume Type:** `hostPath` (`/mnt/security`)
+
+2. **PersistentVolumeClaim (`pvc-xfusion`)**
+   - **Storage Class:** `manual`
+   - **Requested Storage:** `1Gi`
+   - **Access Mode:** `ReadWriteOnce` (RWO)
+
+3. **Pod (`pod-xfusion`)**
+   - **Container Name:** `container-xfusion`
+   - **Image:** `nginx:latest`
+   - **Volume Mount:** Mounted at Nginx document root (`/usr/share/nginx/html`) using `pvc-xfusion`.
+   - **Labels:** `run: web-xfusion` (matched by the NodePort service selector).
+
+4. **Service (`web-xfusion`)**
+   - **Type:** `NodePort`
+   - **NodePort:** `30008`
+   - **Target Port:** `80`
+
+---
+
+## 📂 Deployment Manifest (`app-deploy.yaml`)
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-xfusion
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  hostPath:
+    path: /mnt/security
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: pvc-xfusion
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: manual
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod-xfusion
+  labels:
+    run: web-xfusion
+spec:
+  containers:
+    - name: container-xfusion
+      image: nginx:latest
+      volumeMounts:
+        - mountPath: /usr/share/nginx/html
+          name: task-volume
+  volumes:
+    - name: task-volume
+      persistentVolumeClaim:
+        claimName: pvc-xfusion
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: web-xfusion
+spec:
+  type: NodePort
+  selector:
+    run: web-xfusion
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30008
+🚀 Deployment Instructions
+Create or open the manifest file:
+
+Bash
+nano app-deploy.yaml
+(Paste the configuration above and save using Ctrl+O, Enter, then Ctrl+X).
+
+Apply the configuration to your Kubernetes cluster:
+
+Bash
+kubectl apply -f app-deploy.yaml
+Initialize the web server document root content inside the mounted persistent volume:
+
+Bash
+kubectl exec -it pod-xfusion -- sh -c "echo 'Hello from Nautilus DevOps' > /usr/share/nginx/html/index.html"
+✅ Verification
+Verify that all Kubernetes resources are successfully created, bound, and running:
+
+Bash
+kubectl get pv,pvc,pod,svc
+Expected Output:
+
+pv-xfusion shows status Bound to default/pvc-xfusion.
+
+pvc-xfusion shows status Bound to pv-xfusion.
+
+pod-xfusion shows status Running (1/1).
+
+web-xfusion service is active on port 30008.
