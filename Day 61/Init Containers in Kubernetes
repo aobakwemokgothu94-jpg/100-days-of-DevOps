@@ -1,0 +1,91 @@
+Kubernetes Init Container Deployment (ic-deploy-devops)
+Project Overview
+This project demonstrates the implementation of Kubernetes Init Containers to handle configuration pre-requisites prior to starting the main application container. In this scenario, an init container provisions a required configuration file on a shared volume, which is subsequently read by the main container.
+
+Architecture & Components
+Deployment Name: ic-deploy-devops
+
+Replicas: 1
+
+Labels: app: ic-devops (applied to both Deployment selector and Pod template metadata)
+
+Storage (Volume): ic-volume-devops configured as an emptyDir type for temporary pod-lifetime shared storage.
+
+Init Container (ic-msg-devops):
+
+Image: fedora:latest
+
+Command: ["/bin/bash", "-c", "echo Init Done - Welcome to xFusionCorp Industries > /ic/beta"]
+
+Volume Mount: Mounted at /ic (ic-volume-devops)
+
+Main Container (ic-main-devops):
+
+Image: fedora:latest
+
+Command: ["/bin/bash", "-c", "while true; do cat /ic/beta; sleep 5; done"]
+
+Volume Mount: Mounted at /ic (ic-volume-devops)
+
+Deployment Manifest (deployment.yaml)
+YAML
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ic-deploy-devops
+  labels:
+    app: ic-devops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ic-devops
+  template:
+    metadata:
+      labels:
+        app: ic-devops
+    spec:
+      initContainers:
+        - name: ic-msg-devops
+          image: fedora:latest
+          command: ["/bin/bash", "-c", "echo Init Done - Welcome to xFusionCorp Industries > /ic/beta"]
+          volumeMounts:
+            - name: ic-volume-devops
+              mountPath: /ic
+      containers:
+        - name: ic-main-devops
+          image: fedora:latest
+          command: ["/bin/bash", "-c", "while true; do cat /ic/beta; sleep 5; done"]
+          volumeMounts:
+            - name: ic-volume-devops
+              mountPath: /ic
+      volumes:
+        - name: ic-volume-devops
+          emptyDir: {}
+Quick Start & Verification
+Apply the Manifest:
+
+Bash
+kubectl apply -f deployment.yaml
+Check Pod Initialization and Status:
+
+Bash
+kubectl get pods
+Verify Init Container Execution Logs:
+
+Bash
+kubectl logs deployment/ic-deploy-devops -c ic-msg-devops
+Verify Main Container Output:
+
+Bash
+kubectl logs deployment/ic-deploy-devops -c ic-main-devops
+Technical Review & Summary
+Execution Status: Successful
+
+Validation Results:
+
+The init container (ic-msg-devops) successfully initialized, mounted the emptyDir volume, and wrote the expected greeting string into /ic/beta before exiting cleanly with status code 0.
+
+The main container (ic-main-devops) successfully initialized after the init container completed, continuously reading and streaming the expected configuration message (Init Done - Welcome to xFusionCorp Industries) from the shared volume mount.
+
+Key Takeaway: The init container pattern successfully decouples pre-deployment configuration steps from application container images, providing a clean separation of concerns for Kubernetes workloads.
