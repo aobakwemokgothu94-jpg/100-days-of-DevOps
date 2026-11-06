@@ -1,0 +1,211 @@
+Kubernetes Deployment: Iron Gallery Application & MariaDB
+📋 Overview
+This project deploys a multi-tier web application consisting of the Iron Gallery frontend and a MariaDB database backend onto a Kubernetes cluster within a dedicated namespace (iron-namespace-xfusion).
+
+The setup utilizes Deployments, Services (ClusterIP and NodePort), Persistent Volumes via emptyDir, and strict resource limits to ensure proper application containerization.
+
+🏗️ Architecture & Component Specifications
+1. Namespace
+Name: iron-namespace-xfusion
+
+2. Frontend: Iron Gallery Deployment & Service
+Deployment Name: iron-gallery-deployment-xfusion
+
+Namespace: iron-namespace-xfusion
+
+Replicas: 1
+
+Labels / Match Labels / Template Labels: run: iron-gallery
+
+Container Name: iron-gallery-container-xfusion
+
+Image: kodekloud/irongallery:2.0
+
+Resource Limits:
+
+CPU: 50m
+
+Memory: 100Mi
+
+Volumes & Mounts:
+
+Config Volume (emptyDir) mounted at /usr/share/nginx/html/data
+
+Images Volume (emptyDir) mounted at /usr/share/nginx/html/uploads
+
+Service:
+
+Name: iron-gallery-service-xfusion
+
+Type: NodePort
+
+Protocol: TCP
+
+Port / TargetPort: 80
+
+NodePort: 32678
+
+3. Backend: Iron DB Deployment & Service
+Deployment Name: iron-db-deployment-xfusion
+
+Namespace: iron-namespace-xfusion
+
+Replicas: 1
+
+Labels / Match Labels / Template Labels: db: mariadb
+
+Container Name: iron-db-container-xfusion
+
+Image: kodekloud/irondb:2.0
+
+Environment Variables:
+
+MYSQL_DATABASE: database_blog
+
+MYSQL_USER: db_user
+
+MYSQL_PASSWORD: user_secure_pass123
+
+MYSQL_ROOT_PASSWORD: root_secure_pass123
+
+Volume & Mount:
+
+DB Volume (emptyDir) mounted at /var/lib/mysql
+
+Service:
+
+Name: iron-db-service-xfusion
+
+Type: ClusterIP
+
+Protocol: TCP
+
+Port / TargetPort: 3306
+
+⚙️ Kubernetes Manifest (iron-app.yaml)
+YAML
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: iron-namespace-xfusion
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iron-gallery-deployment-xfusion
+  namespace: iron-namespace-xfusion
+  labels:
+    run: iron-gallery
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: iron-gallery
+  template:
+    metadata:
+      labels:
+        run: iron-gallery
+    spec:
+      containers:
+      - name: iron-gallery-container-xfusion
+        image: kodekloud/irongallery:2.0
+        resources:
+          limits:
+            memory: "100Mi"
+            cpu: "50m"
+        volumeMounts:
+        - name: config
+          mountPath: /usr/share/nginx/html/data
+        - name: images
+          mountPath: /usr/share/nginx/html/uploads
+      volumes:
+      - name: config
+        emptyDir: {}
+      - name: images
+        emptyDir: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: iron-db-deployment-xfusion
+  namespace: iron-namespace-xfusion
+  labels:
+    db: mariadb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      db: mariadb
+  template:
+    metadata:
+      labels:
+        db: mariadb
+    spec:
+      containers:
+      - name: iron-db-container-xfusion
+        image: kodekloud/irondb:2.0
+        env:
+        - name: MYSQL_DATABASE
+          value: database_blog
+        - name: MYSQL_ROOT_PASSWORD
+          value: root_secure_pass123
+        - name: MYSQL_USER
+          value: db_user
+        - name: MYSQL_PASSWORD
+          value: user_secure_pass123
+        volumeMounts:
+        - name: db
+          mountPath: /var/lib/mysql
+      volumes:
+      - name: db
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iron-db-service-xfusion
+  namespace: iron-namespace-xfusion
+spec:
+  selector:
+    db: mariadb
+  ports:
+  - protocol: TCP
+    port: 3306
+    targetPort: 3306
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: iron-gallery-service-xfusion
+  namespace: iron-namespace-xfusion
+spec:
+  selector:
+    run: iron-gallery
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
+    nodePort: 32678
+  type: NodePort
+🚀 Deployment Instructions
+Create and save the manifest file:
+
+Bash
+nano iron-app.yaml
+(Paste the YAML configuration above, save, and exit)
+
+Apply the configuration to the cluster:
+
+Bash
+kubectl apply -f iron-app.yaml
+Verify the resources:
+
+Bash
+kubectl get all -n iron-namespace-xfusion
+🔍 Validation & Preview
+Pod Status Check: Ensure all pods transition to Running (1/1):
+
+Bash
+kubectl get pods -n iron-namespace-xfusion
+Application Access: The frontend service is exposed externally on NodePort 32678, rendering the application installation and setup page successfully.
