@@ -1,0 +1,72 @@
+Kubernetes Python Application Troubleshooting & Deployment
+This repository documents the resolution of a Kubernetes deployment and service misconfiguration issue involving a Python Flask application (poroko/flask-demo-app), ensuring high availability, correct container image referencing, and proper traffic routing via NodePort.
+
+📋 Problem Statement
+During the deployment of a Python application on the Kubernetes cluster, the application pods failed to start and traffic could not reach the container successfully. The objectives were to:
+
+Fix the image pull error on the deployment named python-deployment-devops.
+
+Ensure the correct application image (poroko/flask-demo-app) is utilized.
+
+Configure the Kubernetes Service (python-service-devops) with a nodePort of 32345 and a targetPort matching the Flask app's default port (5000).
+
+🛠️ Troubleshooting & Resolution Workflow
+1. Diagnosing Deployment Issues
+By inspecting the deployment and pods, we discovered an ImagePullBackOff status caused by a typo in the image name:
+
+Bash
+kubectl get deployments
+kubectl get pods
+kubectl describe deployment python-deployment-devops
+Error Identified: The deployment was referencing poroko/flask-app-demo instead of the required poroko/flask-demo-app.
+
+2. Inspecting and Correcting the Service Configuration
+Checking the existing service revealed that the targetPort and port mappings were targeting port 8080 instead of Flask's default port (5000):
+
+Bash
+kubectl describe service python-service-devops
+3. Applying the Corrected Manifests
+We defined and applied an updated, clean service configuration using kubectl apply:
+
+YAML
+apiVersion: v1
+kind: Service
+metadata:
+  name: python-service-devops
+spec:
+  type: NodePort
+  selector:
+    app: python_app
+  ports:
+  - port: 8080
+    targetPort: 5000
+    nodePort: 32345
+Applied via:
+
+Bash
+kubectl apply -f service.yaml --force
+📸 Previews & Verification
+Verified Service Configuration
+Running kubectl describe service python-service-devops confirmed that traffic correctly maps to the default Flask application port with the required NodePort:
+
+Plaintext
+Name:                     python-service-devops
+Namespace:                default
+Selector:                 app=python_app
+Type:                     NodePort
+Port:                     8080/TCP
+TargetPort:               5000/TCP
+NodePort:                 32345/TCP
+Endpoints:                10.22.0.10:5000
+Lab Execution Preview
+Figure: Successful service configuration and endpoint mapping in the Kubernetes cluster terminal.
+
+🚀 Final Verification Commands
+To verify that pods are running and endpoints are actively serving traffic, execute:
+
+Bash
+# Check pod health and status
+kubectl get pods
+
+# Verify service endpoints and ports
+kubectl get svc python-service-devops
