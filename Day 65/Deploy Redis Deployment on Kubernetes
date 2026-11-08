@@ -1,0 +1,250 @@
+# Nautilus Kubernetes Redis Deployment
+
+## 1. Project Overview
+
+This project deploys Redis as an in-memory caching service inside a Kubernetes cluster for the Nautilus application development team.
+
+The deployment uses the official `redis:alpine` image and Kubernetes ConfigMap configuration to set Redis maximum memory to 2 MB.
+
+The deployment is intended for initial testing before a potential production rollout.
+
+## 2. Objectives
+
+- Create a ConfigMap named `my-redis-config`.
+- Configure Redis with `maxmemory 2mb`.
+- Deploy Redis using Kubernetes Deployment.
+- Run exactly one replica.
+- Configure the container name as `redis-container`.
+- Request 1 CPU.
+- Mount an `emptyDir` data volume.
+- Mount the Redis ConfigMap.
+- Expose container port 6379.
+- Verify Redis is running and using the requested memory configuration.
+
+## 3. Technology Stack
+
+- Kubernetes
+- kubectl
+- Redis
+- Redis Alpine Linux image
+- ConfigMaps
+- Deployments
+- Volumes and Volume Mounts
+
+## 4. Kubernetes Resources
+
+| Resource | Configuration |
+|---|---|
+| ConfigMap | my-redis-config |
+| Deployment | redis-deployment |
+| Container | redis-container |
+| Image | redis:alpine |
+| Replicas | 1 |
+| CPU request | 1 |
+| Container port | 6379 |
+| Data volume | data (emptyDir) |
+| Config volume | redis-config (ConfigMap) |
+
+## 5. ConfigMap Creation
+
+Command:
+
+```bash
+kubectl create configmap my-redis-config \
+  --from-literal=redis-config="maxmemory 2mb"
+```
+
+Verification:
+
+```bash
+kubectl get configmap my-redis-config -o yaml
+```
+
+Verified configuration:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-redis-config
+data:
+  redis-config: maxmemory 2mb
+```
+
+## 6. Redis Deployment Configuration
+
+The Redis deployment uses the following Kubernetes configuration:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis-container
+          image: redis:alpine
+          command:
+            - redis-server
+            - /redis-master/redis-config
+          ports:
+            - containerPort: 6379
+          resources:
+            requests:
+              cpu: "1"
+          volumeMounts:
+            - name: data
+              mountPath: /redis-master-data
+            - name: redis-config
+              mountPath: /redis-master
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: redis-config
+          configMap:
+            name: my-redis-config
+```
+
+## 7. Deployment Execution
+
+Apply the deployment:
+
+```bash
+kubectl apply -f /tmp/redis-deployment.yaml
+```
+
+Wait for successful rollout:
+
+```bash
+kubectl rollout status deployment/redis-deployment
+```
+
+Verified output:
+
+```text
+deployment "redis-deployment" successfully rolled out
+```
+
+## 8. Verification and Command Previews
+
+### Preview 1: Deployment Status
+
+Command:
+
+```bash
+kubectl get deployment redis-deployment
+```
+
+Actual output:
+
+```text
+NAME               READY   UP-TO-DATE   AVAILABLE
+redis-deployment   1/1     1            1
+```
+
+### Preview 2: Redis Pod Status
+
+Command:
+
+```bash
+kubectl get pods -l app=redis
+```
+
+Actual output:
+
+```text
+NAME                               READY   STATUS
+redis-deployment-c994d8d8d-zr6wc   1/1     Running
+```
+
+Restarts: 0
+
+### Preview 3: ConfigMap Verification
+
+Command:
+
+```bash
+kubectl get configmap my-redis-config
+```
+
+Actual output:
+
+```text
+NAME              DATA
+my-redis-config   1
+```
+
+### Preview 4: Deployment Configuration
+
+Command:
+
+```bash
+kubectl describe deployment redis-deployment
+```
+
+Verified configuration:
+
+- Desired replicas: 1
+- Available replicas: 1
+- Container: redis-container
+- Image: redis:alpine
+- CPU request: 1
+- Port: 6379/TCP
+- Data mount: /redis-master-data
+- Config mount: /redis-master
+- Data volume type: EmptyDir
+- Config volume type: ConfigMap
+- ConfigMap name: my-redis-config
+
+### Preview 5: Redis Memory Configuration
+
+Command:
+
+```bash
+kubectl exec deployment/redis-deployment -- \
+  redis-cli CONFIG GET maxmemory
+```
+
+Actual output:
+
+```text
+maxmemory
+2097152
+```
+
+The returned value represents 2 MiB (2,097,152 bytes), confirming that Redis loaded the requested memory configuration.
+
+## 9. Final Results
+
+| Acceptance Criteria | Result |
+|---|---|
+| ConfigMap created | Passed |
+| Redis memory set to 2 MB | Passed |
+| Deployment created | Passed |
+| Correct Redis image | Passed |
+| One replica available | Passed |
+| CPU request configured | Passed |
+| EmptyDir volume mounted | Passed |
+| ConfigMap volume mounted | Passed |
+| Container port 6379 exposed | Passed |
+| Redis pod running | Passed |
+| Redis memory configuration verified | Passed |
+
+## 10. Conclusion
+
+The Nautilus Kubernetes Redis deployment was successfully created and verified.
+
+Redis is running inside the Kubernetes cluster with one available replica. The ConfigMap is mounted and loaded by Redis, the requested CPU resource is configured, and both required volumes are attached to the container.
+
+The Redis memory configuration was independently verified using `redis-cli CONFIG GET maxmemory`, which returned `2097152` bytes.
+
+The deployment satisfies the requested testing
