@@ -1,0 +1,299 @@
+Kubernetes Guestbook Application Deployment
+
+1. Project Overview
+
+This task involved deploying the Kubernetes Guestbook application on a K3s Kubernetes cluster.
+
+The application consists of three main components:
+
+Redis Master: Provides the primary Redis service.
+
+Redis Slaves: Two replicas provide Redis follower services.
+
+Frontend: Three PHP frontend replicas communicate with Redis through Kubernetes services.
+
+The resources were deployed in the default namespace.
+
+2. Cluster Information
+
+Component
+
+Configuration
+
+Kubernetes distribution
+
+K3s
+
+Kubernetes version
+
+v1.34.1+k3s1
+
+Node
+
+jump-host
+
+Node status
+
+Ready
+
+Namespace
+
+default
+
+3. Redis Master Deployment
+
+Setting
+
+Value
+
+Deployment
+
+redis-master
+
+Replicas
+
+1
+
+Container
+
+master-redis-devops
+
+Image
+
+redis
+
+Container port
+
+6379
+
+CPU request
+
+100m
+
+Memory request
+
+100Mi
+
+Service
+
+redis-master
+
+Service port
+
+6379
+
+4. Redis Slave Deployment
+
+Setting
+
+Value
+
+Deployment
+
+redis-slave
+
+Replicas
+
+2
+
+Container
+
+slave-redis-devops
+
+Image
+
+gcr.io/google_samples/gb-redisslave
+
+Container port
+
+6379
+
+CPU request
+
+100m
+
+Memory request
+
+100Mi
+
+Environment variable
+
+GET_HOSTS_FROM=dns
+
+Services
+
+redis-slave, redis-follower
+
+Service port
+
+6379
+
+5. Frontend Deployment
+
+Setting
+
+Value
+
+Deployment
+
+frontend
+
+Replicas
+
+3
+
+Container
+
+php-redis-devops
+
+Image
+
+gcr.io/google-samples/gb-frontend@sha256
+
+Container port
+
+80
+
+CPU request
+
+100m
+
+Memory request
+
+100Mi
+
+Environment variable
+
+GET_HOSTS_FROM=dns
+
+Service type
+
+NodePort
+
+Service port
+
+80
+
+NodePort
+
+30009
+
+6. Verification
+
+The following Kubernetes commands were used to inspect the deployed resources:
+
+kubectl get deployments
+kubectl get services
+kubectl get pods -o wide
+kubectl describe deployment frontend
+kubectl describe deployment redis-master
+kubectl describe deployment redis-slave
+
+Recorded deployment status
+
+Deployment
+
+Ready
+
+Available
+
+frontend
+
+3/3
+
+3
+
+redis-master
+
+1/1
+
+1
+
+redis-slave
+
+2/2
+
+2
+
+All six application pods were reported as Running, with 1/1 containers ready and zero restarts in the recorded output.
+
+7. Service Configuration
+
+Service
+
+Type
+
+Port
+
+frontend
+
+NodePort
+
+80:30009
+
+redis-master
+
+ClusterIP
+
+6379
+
+redis-slave
+
+ClusterIP
+
+6379
+
+redis-follower
+
+ClusterIP
+
+6379
+
+The frontend is exposed through NodePort 30009.
+
+8. Conclusion
+
+The Guestbook Kubernetes resources were successfully deployed and the recorded terminal verification showed all three deployments available, with all six application pods running and ready.
+
+The final browser-based application check through the lab dashboard's App button still needs confirmation before claiming that the Guest
+book webpage was successfully accessed.
+
+Preview 1 — Deployment Overview
+KUBERNETES GUESTBOOK DEPLOYMENT
+
+Cluster: jump-host
+Kubernetes: v1.34.1+k3s1
+Namespace: default
+
+DEPLOYMENTS
+
+frontend       3/3 READY
+redis-master   1/1 READY
+redis-slave    2/2 READY
+
+TOTAL APPLICATION PODS: 6
+
+SERVICES
+
+frontend         NodePort   80:30009
+redis-master     ClusterIP  6379
+redis-slave      ClusterIP  6379
+redis-follower   ClusterIP  6379
+
+FRONTEND ACCESS
+Service Type: NodePort
+NodePort: 30009
+
+
+Preview 2 — Verification Results
+KUBERNETES VERIFICATION RESULTS
+
+[PASS] Kubernetes node is Ready
+[PASS] Redis master deployment — 1/1
+[PASS] Redis slave deployment — 2/2
+[PASS] Frontend deployment — 3/3
+[PASS] Frontend NodePort service — 30009
+[PASS] All six application pods Running
+[PASS] All six application pods 1/1 Ready
+[PASS] Zero pod restarts in recorded output
+
