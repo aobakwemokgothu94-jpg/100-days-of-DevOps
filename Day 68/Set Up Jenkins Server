@@ -1,0 +1,244 @@
+# Jenkins Installation and Initial Configuration
+
+## Project Overview
+
+This task involved installing and configuring Jenkins on an Ubuntu 24.04 server using the APT package manager. The installation included setting up Java 21, installing Jenkins, starting the Jenkins service, completing the initial setup wizard, and verifying access to the Jenkins dashboard.
+
+**Jenkins Version:** 2.580.2  
+**Operating System:** Ubuntu 24.04.4 LTS  
+**Java Runtime:** OpenJDK 21  
+**Installation Method:** APT package manager  
+**Service Management:** `service` command
+
+---
+
+## 1. Objectives
+
+The objectives of this task were to:
+
+- Install Java 21 or later.
+- Install Jenkins using APT.
+- Start Jenkins using the `service` command.
+- Unlock Jenkins using its initial administrator password.
+- Install the suggested Jenkins plugins.
+- Complete the initial administrator and instance configuration.
+- Verify successful access to the Jenkins dashboard.
+
+## 2. Environment
+
+| Component | Configuration |
+|---|---|
+| Server hostname | `jenkins` |
+| Operating system | Ubuntu 24.04.4 LTS |
+| Jenkins version | 2.580.2 |
+| Java version | OpenJDK 21 |
+| Package manager | APT |
+| Jenkins port | 8080 |
+| Jenkins administrator | `theadmin` |
+| Administrator display name | Kirsty |
+
+## 3. Implementation
+
+### Step 1: Update package repositories
+
+```bash
+apt update
+```
+
+The package repository update completed successfully, including the configured Jenkins repository.
+
+### Step 2: Install Java 21
+
+```bash
+apt install -y openjdk-21-jre
+```
+
+Verify the Java installation:
+
+```bash
+java -version
+```
+
+**Verified output:**
+
+```text
+openjdk version "21.0.13.0.3-1-24.04"
+OpenJDK Runtime Environment
+OpenJDK 64-Bit Server VM
+```
+
+### Step 3: Install Jenkins
+
+```bash
+apt install -y jenkins
+```
+
+The package manager installed Jenkins version 2.580.2.
+
+The installation output confirmed:
+
+```text
+Setting up jenkins (2.580.2) ...
+```
+
+Automatic service startup was restricted by the lab environment, so Jenkins was started manually.
+
+### Step 4: Start Jenkins
+
+```bash
+service jenkins start
+```
+
+**Verified output:**
+
+```text
+Starting Jenkins Automation Server jenkins
+Setting up max open files limit to 8192
+[ OK ]
+```
+
+### Step 5: Verify Jenkins service status
+
+```bash
+service jenkins status
+```
+
+**Verified output:**
+
+```text
+jenkins is running
+```
+
+### Step 6: Unlock Jenkins
+
+The initial administrator password was retrieved from:
+
+```bash
+cat /var/lib/jenkins/secrets/initialAdminPassword
+```
+
+The password was entered into the Jenkins initial unlock page.
+
+### Step 7: Install suggested plugins
+
+The **Install suggested plugins** option was selected.
+
+The installation included plugins and dependencies such as:
+
+- Git
+- Pipeline
+- Credentials Binding
+- Build Timeout
+- Timestamper
+- Gradle
+- Ant
+- Workspace Cleanup
+- GitHub Branch Source
+- Email Extension
+
+Jenkins completed the plugin installation and proceeded to instance configuration.
+
+### Step 8: Configure Jenkins instance
+
+The Jenkins instance configuration page was completed using the proposed Jenkins URL provided by the lab environment.
+
+### Step 9: Configure administrator account
+
+The initial administrator account was configured as follows:
+
+| Field | Configured value |
+|---|---|
+| Username | `theadmin` |
+| Full name | Kirsty |
+| Email | `kirsty@jenkins.stratos.xfusioncorp.com` |
+| Password | Configured securely |
+
+The administrator password is intentionally excluded from this README.
+
+---
+
+## 4. Verification and Results
+
+The Jenkins dashboard was successfully opened after completing the setup wizard.
+
+**Dashboard details observed:**
+
+| Verification | Result |
+|---|---|
+| Jenkins dashboard accessible | Successful |
+| Logged-in administrator | `theadmin` |
+| Jenkins version | 2.580.2 |
+| Build executors | 0/2 busy |
+| Build queue | No builds in the queue |
+| Initial setup wizard | Completed |
+
+**Jenkins dashboard URL:**
+
+[Open Jenkins Dashboard](https://8080-port-xdh5uzdaacpkvtku.labs.kodekloud.com/)
+
+The dashboard displayed the Jenkins welcome page and provided options to create a job, configure a build agent, and configure a cloud.
+
+## 5. Evidence and Previews
+
+### Preview 1: Java installation
+
+**Evidence:** Terminal output confirming OpenJDK 21 was installed.
+
+Screenshot filename suggestion: `01-java-version.png`
+
+### Preview 2: Jenkins installation
+
+**Evidence:** APT output confirming Jenkins 2.580.2 was installed.
+
+Screenshot filename suggestion: `02-jenkins-installation.png`
+
+### Preview 3: Jenkins service startup
+
+**Evidence:** Terminal output showing `[ OK ]` after running `service jenkins start`.
+
+Screenshot filename suggestion: `03-jenkins-service-start.png`
+
+### Preview 4: Jenkins service status
+
+**Evidence:** Terminal output confirming `jenkins is running`.
+
+Screenshot filename suggestion: `04-jenkins-service-status.png`
+
+### Preview 5: Jenkins plugin installation
+
+**Evidence:** Jenkins suggested plugins installation completed, followed by the instance configuration page.
+
+Screenshot filename suggestion: `05-jenkins-plugins.png`
+
+### Preview 6: Jenkins dashboard
+
+**Evidence:** Successfully authenticated Jenkins dashboard showing the administrator account, build queue, and executor status.
+
+Screenshot filename suggestion: `06-jenkins-dashboard.png`
+
+*The screenshot filenames above are suggested portfolio evidence labels. Capture the actual screenshots from your lab environment and add them to your project folder.*
+
+---
+
+## 6. Skills Demonstrated
+
+This practical exercise demonstrated:
+
+- Linux package management using APT.
+- Java runtime installation and verification.
+- Jenkins installation and initial configuration.
+- Linux service management using the `service` command.
+- Jenkins administrator account configuration.
+- Plugin installation and dependency management.
+- Web-based access to a CI/CD automation platform.
+- Basic service verification and troubleshooting.
+
+## 7. Conclusion
+
+The Jenkins installation and initial configuration task was completed successfully.
+
+Java 21 was installed, Jenkins 2.580.2 was installed through APT, and the Jenkins service was started and verified as running. The initial administrator configuration and suggested plugin installation were completed, and the Jenkins dashboard was successfully accessed.
+
+The server is now ready for subsequent Jenkins activities, including creating jobs, configuring build pipelines, and automating software development workflows.
+
+**Task status: Successfully completed and dashboard access verified.**
