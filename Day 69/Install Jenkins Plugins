@@ -1,0 +1,47 @@
+Jenkins Plugin Installation (Nautilus DevOps)
+This guide documents the successful installation and configuration of the required core plugins (Git and GitLab) on the Nautilus DevOps Jenkins server to enable seamless CI/CD pipeline integration.
+
+📋 Task Objectives
+Access the Jenkins UI using provided administrator credentials (admin / Adm!n321).
+
+Navigate to the Plugin Manager and ensure the Git plugin and GitLab Plugin are installed.
+
+Restart Jenkins cleanly via the Update Centre option once installation is complete and no active jobs are running.
+
+Verify functionality post-restart by re-authenticating and confirming active plugin status.
+
+🛠️ Execution Steps
+Step 1: Authentication & Access
+Navigated to the Jenkins management interface via the top bar.
+
+Logged in successfully with:
+
+Username: admin
+
+Password: Adm!n321
+
+Step 2: Plugin Management & Installation
+Navigated to Manage Jenkins ➔ Plugins ➔ Installed plugins / Available plugins.
+
+Selected and verified the installation of:
+
+Git plugin (Version 5.11.0)
+
+GitLab Plugin (Version 1.9.13)
+
+Step 3: Server Restart
+Opted for the safe restart configuration: "Restart Jenkins when installation is complete and no jobs are running".
+
+Waited for the server to cycle and the login page to reappear.
+
+Re-authenticated to confirm all system states and plugin registrations were successfully saved.
+
+🔍 Preview & Verification
+Installed Plugin Verification Table
+Plugin Name	Version	Status	Description
+Git plugin	5.11.0	Active ([x])	Integrates Git SCM with Jenkins projects.
+GitLab Plugin	1.9.13	Active ([x])	Allows GitLab to trigger builds and display results in the GitLab UI.
+Verification Screenshot Summary
+Dashboard State: Jenkins dashboard loads cleanly with administrator privileges restored.
+
+Plugin Manager UI: Both Git plugin and GitLab Plugin show active checkmarks under the Installed plugins tab, confirming the task requirements have been fully met.
