@@ -1,0 +1,7 @@
+Jenkins configuration application output
+
+CONFIGURATION APPLIED
+User: Siva
+Global strategy: hudson.security.ProjectMatrixAuthorizationStrategy
+Global permissions: [Permission[class hudson.model.Hudson,Read]:[siva], Permission[class hudson.model.Hudson,Administer]:[admin]]
+Helloworld permissions: [Permission[interface hudson.model.Item,Read]:[siva]]
