@@ -1,0 +1,58 @@
+Jenkins Project-Based Matrix Authorization
+Overview
+This task configures Jenkins local user access using the Project-based Matrix Authorization Strategy. A local user named siva is created and granted read-only access globally and to the existing Helloworld job. The admin account retains administrative access.
+Environment
+- Jenkins version: 2.541.2
+- Jenkins home: /var/lib/jenkins
+- Existing job: Helloworld
+- Security realm: Jenkins' built-in user database (HudsonPrivateSecurityRealm)
+- Authorization strategy: Project-based Matrix Authorization Strategy
+- Matrix Authorization plugin: 3.3
+Configuration
+Jenkins user
+Field	Value
+Username	siva
+Full name	Siva
+Password	Rc5C9EyvbU
+
+
+Global permissions
+User	Permission
+admin	Overall → Administer
+siva	Overall → Read
+Anonymous	No global permissions listed
+
+
+Helloworld job permissions
+User	Permission
+siva	Job → Read
+
+
+No Agent, SCM, or other job permissions were added for siva.
+Implementation summary
+The configuration was applied through the Jenkins Script Console using the authenticated administrator account and a valid Jenkins CSRF crumb.
+
+The script:
+1. Confirmed the existing Jenkins local security realm.
+2. Created the siva account if it did not already exist.
+3. Set the user's full name to Siva.
+4. Replaced the previous authorization strategy with ProjectMatrixAuthorizationStrategy.
+5. Granted admin Overall → Administer.
+6. Granted siva Overall → Read.
+7. Set the Helloworld job matrix to grant siva Job → Read.
+8. Saved the Jenkins and job configuration.
+Verification results
+A subsequent read-only verification confirmed:
+User exists: true
+Full name: Siva
+Authorization strategy: hudson.security.ProjectMatrixAuthorizationStrategy
+Global permissions: [Permission[class hudson.model.Hudson,Read]:[siva], Permission[class hudson.model.Hudson,Administer]:[admin]]
+Helloworld permissions: [Permission[interface hudson.model.Item,Read]:[siva]]
+These results confirm the requested user, authorization strategy, global permissions, and job-level permission.
+Evidence / previews
+See the previews/ folder:
+- 01-configuration-applied.txt — terminal output from applying the configuration.
+- 02-final-verification.txt — terminal output from the read-only verification.
+Browser screenshots: Capture the Jenkins Users page, the global Authorization matrix, and the Helloworld job's Project-based Matrix Authorization section separately in the Jenkins browser. Actual browser screenshots were not supplied with this package, so no screenshot images are represented as captured evidence.
+Security note
+The lab credentials are included above because they were supplied for this exercise. Do not reuse these credentials outside the lab. Avoid publishing the README or evidence package publicly while it contains credentials.
