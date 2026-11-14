@@ -1,0 +1,50 @@
+# Jenkins Automated Package Installation Pipeline
+
+## Overview
+This project automates package installation across remote infrastructure servers (specifically the Storage Server in the Stratos Datacenter) using a parameterized Jenkins freestyle job. It eliminates manual intervention by securely executing remote `yum` commands via SSH with `sshpass`.
+
+---
+
+## Architecture & Workflow
+1. **Trigger:** A Jenkins freestyle job named `install-packages` is manually or automatically triggered with a parameterized string input.
+2. **Parameter:** Accepts a string parameter **`PACKAGE`** (e.g., `vim-enhanced`, `httpd`, `git`).
+3. **Execution:** Jenkins runs an ephemeral shell script that authenticates via `sshpass` to the remote storage server (`ststor01`) and executes the package installation command securely with elevated privileges.
+
+---
+
+## Job Configuration Details
+
+### 1. Parameters
+* **Name:** `PACKAGE`
+* **Type:** String Parameter
+* **Default Value:** `vim-enhanced`
+* **Description:** Target Linux package name to install on the remote storage node.
+
+### 2. Build Step (`Execute Shell`)
+```bash
+sshpass -p 'Bl@kW' ssh -o StrictHostKeyChecking=no natasha@ststor01 "sudo yum install -y ${PACKAGE}"
+Infrastructure Credentials & Mapping
+Jenkins Server: Runs CI/CD pipelines (jenkins / j@rv!s)
+
+Storage Server (ststor01): Target node for package deployment (natasha / Bl@kW)
+
+🔍 Task Preview & Execution Steps
+Step 1: Access and Authentication
+Log into the Jenkins dashboard using administrator credentials (admin / Adm!n321).
+
+Step 2: Job Creation
+Create a Freestyle project named install-packages.
+
+Enable This project is parameterized and add a String Parameter named PACKAGE.
+
+Step 3: Build & Validation
+Click Build with Parameters, supply the target package name, and trigger the build.
+
+Verify successful completion in the Console Output, confirming dependencies resolve and packages install successfully on ststor01.
+
+🛠️ Troubleshooting Guide
+Issue / Error Symptom	Root Cause	Solution
+yum install: error: the following arguments are required: PACKAGE	The shell command did not properly capture the Jenkins parameter variable (evaluated to empty).	Ensure the parameter is explicitly enclosed in braces as ${PACKAGE} rather than unquoted $PACKAGE.
+Host key verification failed or connection hangs	The remote host fingerprint has changed or has not been accepted by the Jenkins user session.	Include -o StrictHostKeyChecking=no in your SSH command string to automatically accept and store the host key.
+sshpass: command not found	The sshpass utility is missing from the local Jenkins instance container or server environment.	Install sshpass via system package manager (e.g., sudo apt-get install sshpass or sudo yum install sshpass) or configure SSH key-based authentication.
+Permission Denied / Authentication Failure	Incorrect remote username or password provided in the SSH connection string.	Verify the target credentials against the infrastructure sheet (natasha / Bl@kW).
