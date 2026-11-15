@@ -1,0 +1,90 @@
+Jenkins Parameterized Build Pipeline
+Overview
+This project demonstrates the configuration and execution of a parameterized Jenkins freestyle job named parameterized-job. It validates basic parameterized build mechanics in Jenkins, including the definition of string and choice parameters, environmental variable injection, shell execution steps, and remote API/CLI validation.
+
+Job Specifications
+Job Name: parameterized-job
+
+Job Type: Freestyle Project
+
+Parameters Configured:
+
+Stage (String Parameter)
+
+Default Value: Build
+
+env (Choice Parameter)
+
+Allowed Values: Development, Staging, Production
+
+Build Step: Execute Shell
+
+Bash
+echo "Stage is: $Stage"
+echo "Environment is: $env"
+Implementation & Execution Guide
+1. Create and Configure Job via Jenkins API / XML
+If defining the job configuration via file provisioning (config.xml), ensure the job metadata and parameter definitions match the Jenkins schema:
+
+XML
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description>Parameterized job test</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>Stage</name>
+          <defaultValue>Build</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>env</name>
+          <description>Select environment</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>Development</string>
+              <string>Staging</string>
+              <string>Production</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <scm class="hudson.scm.NullSCM"/>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>echo "Stage is: $Stage"
+echo "Environment is: $env"</command>
+      <configuredLocalRules/>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers/>
+</project>
+2. Trigger Parameterized Build via CLI / API
+Trigger a build execution remotely passing custom parameter values (Stage=Build, env=Development):
+
+Bash
+curl -X POST --user 'admin:Adm!n321' \
+     'http://jenkins:8080/job/parameterized-job/buildWithParameters?Stage=Build&env=Development'
+Build Execution Preview
+Plaintext
+Started by user admin
+Running as SYSTEM
+Building in workspace /var/lib/jenkins/workspace/parameterized-job
+[parameterized-job] $ /bin/sh -xe /tmp/jenkins7110006710145837686.sh
++ echo Stage is: Build
+Stage is: Build
++ echo Environment is: Development
+Environment is: Development
+Finished: SUCCESS
