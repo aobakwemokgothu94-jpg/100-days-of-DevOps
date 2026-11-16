@@ -1,0 +1,49 @@
+Centralised Logging Management System: Automated Apache Log Collection via Jenkins
+Overview
+To support the xFusionCorp Industries DevOps team in maintaining and analyzing server logs across the Nautilus infrastructure, this project implements a periodic, automated Jenkins CI/CD pipeline (copy-logs). The job securely collects Apache web server logs (access_log and error_log) from Application Server 1 (stapp01) and archives them centrally onto the Storage Server (ststor01) under /usr/src/finance.
+
+Architecture & Workflow
+[ Application Server 1 (stapp01) ] 
+       │
+       ▼ (Secure SCP via sshpass using credentials)
+[ Jenkins Server (copy-logs Job) ] 
+       │ (Scheduled every 10 minutes: */10 * * * *)
+       ▼
+[ Storage Server (ststor01) ] ──> Target Directory: /usr/src/finance
+Jenkins Job Configuration Details
+1. Build Trigger (Schedule)
+Configuration: Build periodically
+
+Cron Expression: */10 * * * * (Executes automatically every 10 minutes).
+
+2. Build Step (Execute shell)
+The pipeline runs the following shell commands to pull logs securely and transfer them to central storage:
+
+Bash
+# Create a temporary working directory locally on the Jenkins runner
+mkdir -p /tmp/apache_logs
+
+# Copy Apache access_log and error_log from stapp01
+# User: tony | Password: Ir0nM@n
+sshpass -p 'Ir0nM@n' scp -o StrictHostKeyChecking=no tony@stapp01:/var/log/httpd/*_log /tmp/apache_logs/
+
+# Transfer the collected logs to the Storage Server (ststor01)
+# User: natasha | Password: Bl@kW | Destination: /usr/src/finance
+sshpass -p 'Bl@kW' scp -o StrictHostKeyChecking=no /tmp/apache_logs/*_log natasha@ststor01:/usr/src/finance/
+Execution & Verification Preview
+Job Name: copy-logs
+
+Build Number: #2
+
+Status: SUCCESS
+
+Console Output Log (#2)
+Plaintext
+Started by timer
+Running as SYSTEM
+Building in workspace /var/lib/jenkins/workspace/copy-logs
+[copy-logs] $ /bin/sh -xe /tmp/jenkins15571813283761328968.sh
++ mkdir -p /tmp/apache_logs
++ sshpass -p Ir0nM@n scp -o StrictHostKeyChecking=no tony@stapp01:/var/log/httpd/*_log /tmp/apache_logs/
++ sshpass -p Bl@kW scp -o StrictHostKeyChecking=no /tmp/apache_logs/access_log /tmp/apache_logs/error_log natasha@ststor01:/usr/src/finance/
+Finished: SUCCESS
