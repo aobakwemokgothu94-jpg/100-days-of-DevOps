@@ -1,0 +1,127 @@
+# Configure Jenkins SSH Build Agents (Slave Nodes) in Stratos DC
+
+## Overview
+This task configures three Nautilus Application Servers (`stapp01`, `stapp02`, `stapp03`) as permanent SSH build agent (slave) nodes on the Stratos DC Jenkins controller (`jenkins:8080`). Enabling distributed agent nodes allows Jenkins CI/CD pipelines and automation jobs to execute workloads directly on target application hosts using node-specific labels and isolated remote root workspaces.
+
+---
+
+## Infrastructure & Node Specifications
+
+| Node Name | Hostname | SSH User | Label | Remote Root Directory | Launch Method |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `App_server_1` | `stapp01` | `tony` | `stapp01` | `/home/tony/jenkins` | Launch agents via SSH |
+| `App_server_2` | `stapp02` | `steve` | `stapp02` | `/home/steve/jenkins` | Launch agents via SSH |
+| `App_server_3` | `stapp03` | `banner` | `stapp03` | `/home/banner/jenkins` | Launch agents via SSH |
+
+---
+
+## Step-by-Step Implementation
+
+### 1. Prepare Target Application Servers
+Jenkins SSH agents require a compatible Java Runtime Environment (JRE/JDK) and an existing remote root directory owned by the SSH user on each target host. From `jumphost`, provision the directories and install `java-17-openjdk-headless` across all three nodes:
+
+```bash
+for host in tony@stapp01:Ir0nM@n steve@stapp02:Am3ric@ banner@stapp03:BigGr33n; do
+  user_host="${host%%:*}"
+  pass="${host#*:}"
+  user="${user_host%@*}"
+  sshpass -p "$pass" ssh -o StrictHostKeyChecking=no "$user_host" \
+    "mkdir -p /home/$user/jenkins && echo '$pass' | sudo -S yum install -y java-17-openjdk-headless"
+done
+2. Install the SSH Build Agents Plugin
+Log into the Jenkins web UI (http://jenkins:8080) using admin / Adm!n321.
+
+Navigate to Manage Jenkins > Plugins > Available plugins.
+
+Search for SSH Build Agents (ssh-slaves), select it, and click Install.
+
+Select Restart Jenkins when installation is complete and no jobs are running, then refresh the browser once the service restarts.
+
+3. Configure Permanent SSH Agent Nodes
+Navigate to Manage Jenkins > Nodes > New Node and configure each agent as a Permanent Agent:
+
+Node 1 (App_server_1)
+
+Remote root directory: /home/tony/jenkins
+
+Labels: stapp01
+
+Usage: Use this node as much as possible
+
+Launch method: Launch agents via SSH
+
+Host: stapp01
+
+Credentials: Username with password (tony / Ir0nM@n, ID: tony-ssh-pass)
+
+Host Key Verification Strategy: Non verifying Verification Strategy
+
+Node 2 (App_server_2)
+
+Remote root directory: /home/steve/jenkins
+
+Labels: stapp02
+
+Usage: Use this node as much as possible
+
+Launch method: Launch agents via SSH
+
+Host: stapp02
+
+Credentials: Username with password (steve / Am3ric@, ID: steve-ssh-pass)
+
+Host Key Verification Strategy: Non verifying Verification Strategy
+
+Node 3 (App_server_3)
+
+Remote root directory: /home/banner/jenkins
+
+Labels: stapp03
+
+Usage: Use this node as much as possible
+
+Launch method: Launch agents via SSH
+
+Host: stapp03
+
+Credentials: Username with password (banner / BigGr33n, ID: banner-ssh-pass)
+
+Host Key Verification Strategy: Non verifying Verification Strategy
+
+Troubleshooting & Root Cause Resolution
+Issue Encountered: Initial SSH connection attempts failed with:
+
+Plaintext
+/var/lib/jenkins/.ssh/known_hosts [SSH] No Known Hosts file was found at /var/lib/jenkins/.ssh/known_hosts.
+Key exchange was not finished, connection is closed.
+Root Cause: The SSH launcher defaulted to KnownHostsFileKeyVerificationStrategy, while the jenkins controller user lacked a pre-populated known_hosts file for stapp01–stapp03.
+
+Resolution: Updated Host Key Verification Strategy to Non verifying Verification Strategy across all three nodes and relaunched the agents, establishing immediate SSH sessions and deploying remoting.jar.
+
+Verification & Command Previews
+1. Jenkins REST API Node Status Check
+Verify that all three agent nodes report "offline" : false via the Jenkins JSON API:
+
+Bash
+thor@jumphost ~$ curl -s -u 'admin:Adm!n321' "http://jenkins:8080/computer/api/json?pretty=true" | grep -E '"displayName"|"offline"|"temporarilyOffline"'
+      "displayName" : "Built-In Node",
+      "offline" : false,
+      "temporarilyOffline" : false
+      "displayName" : "App_server_1",
+      "offline" : false,
+      "temporarilyOffline" : false
+      "displayName" : "App_server_2",
+      "offline" : false,
+      "temporarilyOffline" : false
+      "displayName" : "App_server_3",
+      "offline" : false,
+      "temporarilyOffline" : false,
+  "displayName" : "Nodes",
+2. Jenkins UI Nodes Dashboard Summary
+All nodes registered in Manage Jenkins > Nodes report active telemetry and online status:
+
+Status	Name	Architecture	Clock Difference	Free Disk Space	Response Time
+[online]	App_server_1	Linux (amd64)	In sync	290.39 GiB	48ms
+[online]	App_server_2	Linux (amd64)	In sync	288.76 GiB	99ms
+[online]	App_server_3	Linux (amd64)	In sync	322.10 GiB	104ms
+[online]	Built-In Node	Linux (amd64)	In sync	276.34 GiB	0ms
