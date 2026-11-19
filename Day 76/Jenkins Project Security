@@ -1,0 +1,170 @@
+# Day 76: Jenkins Project Security (Project-Based Matrix Authorization)
+
+## 📋 Overview
+This lab implements fine-grained, project-level role-based access control (RBAC) in Jenkins using the **Matrix Authorization Strategy** (`matrix-auth`) plugin. Instead of granting broad global job privileges across all pipelines, authorization is scoped strictly to the **`Packages`** job while preserving parent ACL inheritance and isolating other existing jobs.
+
+* **Track:** 100 Days of DevOps — KodeKloud Engineer (76% Complete)
+* **Completion Date:** November 19, 2026
+* **Environment:** Stratos Datacenter (`jump-host` → `jenkins:8080`, Jenkins `2.541.2`)
+* **Target Job:** `Packages`
+* **Authorization Strategy:** `ProjectMatrixAuthorizationStrategy` with `InheritParentStrategy`
+
+---
+
+## 🎯 Access Control Matrix
+
+| Principal | Global Permissions | `Packages` Job Permissions | Other Jobs |
+| :--- | :--- | :--- | :--- |
+| **`admin`** | `Overall/Administer` | Inherited (`Administer`) | Inherited (`Administer`) |
+| **`sam`** | `Overall/Read` | `Item.Build`, `Item.Configure`, `Item.Read` | None (Isolated) |
+| **`rohan`** | `Overall/Read` | `Item.Build`, `Item.Cancel`, `Item.Configure`, `Item.Read`, `Run.Update`, `SCM.Tag` | None (Isolated) |
+
+* **Inheritance Mode:** `Inherit permissions from parent ACL` (`org.jenkinsci.plugins.matrixauth.inheritance.InheritParentStrategy`)
+
+---
+
+## 🛠️ CLI & REST/Groovy API Execution
+
+All steps were executed purely from `jump-host` (`thor@jumphost`) over the Jenkins HTTP & Groovy Script Console APIs using CSRF crumb authentication.
+
+### 1. Install `matrix-auth` Plugin & Safe Restart
+```bash
+JENKINS_URL="http://jenkins:8080"
+AUTH='admin:Adm!n321'
+
+# Obtain CSRF crumb and session cookie
+CRUMB=$(curl -s -c /tmp/cookies.txt -u "$AUTH" \
+  "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)")
+
+# Install Matrix Authorization Strategy plugin
+curl -s -b /tmp/cookies.txt -u "$AUTH" -H "$CRUMB" \
+  -H "Content-Type: text/xml" \
+  -d '<jenkins><install plugin="matrix-auth@latest" /></jenkins>' \
+  "$JENKINS_URL/pluginManager/installNecessaryPlugins"
+
+sleep 20
+
+# Trigger Jenkins safe restart and wait for readiness
+curl -s -X POST -b /tmp/cookies.txt -u "$AUTH" -H "$CRUMB" \
+  "$JENKINS_URL/safeRestart"
+
+sleep 15
+until curl -s -u "$AUTH" -o /dev/null -w "%{http_code}" "$JENKINS_URL/api/json" | grep -q "200"; do
+  sleep 3
+done
+```
+
+### 2. Configure Global Matrix Strategy & `Packages` Job ACL
+```groovy
+// /tmp/configure_perms.groovy
+import jenkins.model.*
+import hudson.security.*
+import hudson.model.*
+import org.jenkinsci.plugins.matrixauth.inheritance.*
+
+def instance = Jenkins.getInstance()
+
+// 1. Enable Project-based Matrix Authorization Strategy globally
+def strategy = new ProjectMatrixAuthorizationStrategy()
+strategy.add(Jenkins.ADMINISTER, "admin")
+strategy.add(Jenkins.READ, "sam")
+strategy.add(Jenkins.READ, "rohan")
+instance.setAuthorizationStrategy(strategy)
+instance.save()
+
+// 2. Scope permissions strictly to the "Packages" job
+def job = instance.getItemByFullName("Packages", Job.class)
+if (job == null) {
+    throw new RuntimeException("Job 'Packages' not found!")
+}
+
+def existingProp = job.getProperty(AuthorizationMatrixProperty.class)
+if (existingProp != null) {
+    job.removeProperty(existingProp)
+}
+
+def jobProp = new AuthorizationMatrixProperty()
+jobProp.setInheritanceStrategy(new InheritParentStrategy())
+
+// sam: build, configure, read
+jobProp.add(Item.BUILD, "sam")
+jobProp.add(Item.CONFIGURE, "sam")
+jobProp.add(Item.READ, "sam")
+
+// rohan: build, cancel, configure, read, update, tag
+jobProp.add(Item.BUILD, "rohan")
+jobProp.add(Item.CANCEL, "rohan")
+jobProp.add(Item.CONFIGURE, "rohan")
+jobProp.add(Item.READ, "rohan")
+
+def updatePerm = Permission.getAll().find { it.id == "hudson.model.Run.Update" }
+def tagPerm = Permission.getAll().find { it.id == "hudson.scm.SCM.Tag" }
+
+if (updatePerm != null) jobProp.add(updatePerm, "rohan")
+if (tagPerm != null) jobProp.add(tagPerm, "rohan")
+
+job.addProperty(jobProp)
+job.save()
+```
+
+### 3. Execute Configuration Script via API
+```bash
+CRUMB=$(curl -s -c /tmp/cookies.txt -u "$AUTH" \
+  "$JENKINS_URL/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,\":\",//crumb)")
+
+curl -s -b /tmp/cookies.txt -u "$AUTH" -H "$CRUMB" \
+  --data-urlencode "script@/tmp/configure_perms.groovy" \
+  "$JENKINS_URL/scriptText"
+```
+
+---
+
+## ✅ Verification
+
+### XML ACL Inspection (`job/Packages/config.xml`)
+```bash
+curl -s -u 'admin:Adm!n321' "http://jenkins:8080/job/Packages/config.xml" | grep -A 15 "AuthorizationMatrixProperty"
+```
+
+**Verified Output:**
+```xml
+    <hudson.security.AuthorizationMatrixProperty>
+      <inheritanceStrategy class="org.jenkinsci.plugins.matrixauth.inheritance.InheritParentStrategy"/>
+      <permission>hudson.model.Item.Build:rohan</permission>
+      <permission>hudson.model.Item.Build:sam</permission>
+      <permission>hudson.model.Item.Cancel:rohan</permission>
+      <permission>hudson.model.Item.Configure:rohan</permission>
+      <permission>hudson.model.Item.Configure:sam</permission>
+      <permission>hudson.model.Item.Read:rohan</permission>
+      <permission>hudson.model.Item.Read:sam</permission>
+      <permission>hudson.model.Run.Update:rohan</permission>
+      <permission>hudson.scm.SCM.Tag:rohan</permission>
+    </hudson.security.AuthorizationMatrixProperty>
+```
+
+---
+
+## 🛠️ Troubleshooting Notes
+* **Bash History Expansion (`!n321`):** Double-quoting passwords containing `!` (`"admin:Adm!n321"`) triggered bash event substitution (`event not found`). Enclosing credentials in single quotes (`'admin:Adm!n321'`) prevented history expansion.
+* **Jenkins `Update` Permission Namespace:** The job run `Update` permission maps to the `Run` permission group (`hudson.model.Run.Update`) rather than `Item.Update`, resolved via `Permission.getAll()`.
+
+---
+
+## 📸 Visual Evidence
+* `./screenshots/01-packages-build-success.png` — Verified build execution (`Packages #2 — Finished: SUCCESS`)
+* `./screenshots/02-task-passed-streak.png` — KodeKloud Engineer validation passed (Day 76, 800 XP, 3-day streak)
+2. Root Repository Table Row Preview (100-days-of-DevOps/README.md)
+Markdown
+| Day 76 | [Jenkins Project Security](./day-76-jenkins-project-security/README.md) | Jenkins `2.541.2`, Matrix Authorization, RBAC, Groovy Script API, `curl` | ✅ Completed (2026-11-19) |
+3. LinkedIn Post Preview
+Plaintext
+🚀 Day 76 of #100DaysOfDevOps: Jenkins Project-Based Matrix Security (76% Track Milestone)
+
+Completed automated role-based access control (RBAC) hardening on Jenkins 2.541.2 using the Matrix Authorization Strategy plugin and Jenkins REST/Groovy APIs:
+
+🔹 Installed `matrix-auth` and triggered a safe restart via the Jenkins API using CSRF crumb authentication
+🔹 Enabled `ProjectMatrixAuthorizationStrategy` globally with `InheritParentStrategy` to enforce least-privilege access across CI/CD pipelines
+🔹 Scoped granular job permissions strictly to the `Packages` pipeline (`sam`: Build/Configure/Read; `rohan`: Build/Cancel/Configure/Read/Run.Update/SCM.Tag) while isolating other jobs
+🔹 Verified XML ACL serialization (`AuthorizationMatrixProperty`) directly against the `/job/Packages/config.xml` endpoint
+
+#DevOps #Jenkins #CICD #DevSecOps #RBAC #Automation #Linux #100DaysOfDevOps
