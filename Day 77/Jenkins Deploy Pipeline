@@ -1,0 +1,105 @@
+# Automated Static Website Deployment via Jenkins Pipeline & SSH Agent
+
+## Overview
+Configured an automated Continuous Deployment (CD) pipeline in **Jenkins** for xFusionCorp Industries to deploy updates from a **Gitea** repository (`sarah/web_app`) directly to the Apache document root (`/var/www/html`) on Nautilus Application Server 1 (`stapp01`), fronted by the Nautilus Load Balancer (`stlb01`).
+
+---
+
+## Architecture & Workflow
+
++-------------------+        +-----------------------+        +----------------------------+        +------------------+
+|  Gitea Repository |        |    Jenkins Master     |        |  Jenkins SSH Agent         |        |  Load Balancer   |
+|  (sarah/web_app)  | <----- |  (devops-webapp-job)  | => |  App Server 1 (stapp01)    | <= |  (stlb01:80)     |
+|  http://gitea:3000|  pull  |  Stage: Deploy        |  SSH   |  Root: /home/sarah/        |  HTTP  |  Main Root URL   |
++-------------------+        +-----------------------+        |        jenkins_agent       |        +------------------+
+|  DocRoot: /var/www/html    |
++----------------------------+
+
+
+### Infrastructure Specifications
+| Role | Hostname | Service / Port | Working Directory |
+| :--- | :--- | :--- | :--- |
+| **Jenkins Controller** | `jenkins` | Jenkins UI (`8080`) | `/var/lib/jenkins` |
+| **Build Agent / App Server** | `stapp01` (`App Server 1`) | SSH (`22`), Apache (`8080`) | Agent: `/home/sarah/jenkins_agent`<br>Web Root: `/var/www/html` |
+| **Source Control** | `gitea` | Gitea (`3000`) | `http://gitea:3000/sarah/web_app.git` |
+| **Load Balancer** | `stlb01` | Nginx HTTP (`80`/`443`) | Routes root `/` traffic to `stapp01:8080` |
+
+---
+
+## Implementation Steps
+
+### 1. Target Node Preparation (`stapp01`)
+Prepared `App Server 1` (`stapp01`) to support the Jenkins remoting agent and non-interactive Git operations as user `sarah`:
+* **Runtime Upgrade:** Installed OpenJDK 17 (`java-17-openjdk`) to match the Jenkins Controller Java classfile version (`61.0`).
+* **Directory & Ownership Isolation:** Created `/home/sarah/jenkins_agent` as the isolated agent root directory and assigned ownership of both `/home/sarah/jenkins_agent` and `/var/www/html` to `sarah:sarah`.
+* **Git Configuration:** Configured `safe.directory` for `/var/www/html` and stored Gitea credentials via `credential.helper store` so pipeline builds execute `git pull` non-interactively.
+
+```bash
+sudo yum install -y java-17-openjdk
+sudo mkdir -p /home/sarah/jenkins_agent
+sudo chown -R sarah:sarah /home/sarah/jenkins_agent /var/www/html
+sudo -u sarah git config --global --add safe.directory /var/www/html
+sudo -u sarah git config --global credential.helper store
+echo "http://sarah:Sarah_pass123@gitea:3000" | sudo tee /home/sarah/.git-credentials >/dev/null
+sudo chown sarah:sarah /home/sarah/.git-credentials
+2. Jenkins Plugin & SSH Agent Provisioning
+Configured the Jenkins Controller via jenkins-cli.jar:
+
+Installed SSH Build Agents (ssh-slaves) and Pipeline (workflow-aggregator) plugins and restarted Jenkins.
+
+Created global username/password credential sarah-ssh-cred for sarah.
+
+Registered permanent agent App Server 1 with label stapp01, remote root directory /home/sarah/jenkins_agent, and NonVerifyingKeyVerificationStrategy.
+
+3. Declarative Pipeline Configuration (devops-webapp-job)
+Created a standard Pipeline job named devops-webapp-job targeting label stapp01 with a single Deploy stage:
+
+Groovy
+pipeline {
+    agent {
+        label 'stapp01'
+    }
+    stages {
+        stage('Deploy') {
+            steps {
+                sh '''
+                    cd /var/www/html
+                    git pull origin master || git pull origin main
+                '''
+            }
+        }
+    }
+}
+Troubleshooting & Root Cause Resolution
+Issue Encountered	Root Cause	Resolution
+UnsupportedClassVersionError (class file version 61.0 vs 55.0) on jumphost and stapp01	Default Java runtime on jumphost and stapp01 was OpenJDK 11 (55.0), whereas Jenkins CLI and remoting.jar require Java 17 (61.0).	Executed jenkins-cli.jar directly from the jenkins controller (Java 17) and installed java-17-openjdk on stapp01.
+fatal: detected dubious ownership in repository at '/var/www/html'	Repository was initially cloned by root before ownership was transferred to sarah.	Registered /var/www/html in sarah's global Git safe.directory configuration.
+Verification & Execution Previews
+Build #2 Console Output (jenkins-cli.jar)
+Plaintext
+Started devops-webapp-job #2
+Started from command line by admin
+[Pipeline] Start of Pipeline
+[Pipeline] node
+Running on App Server 1 in /home/sarah/jenkins_agent/workspace/devops-webapp-job
+[Pipeline] {
+[Pipeline] stage
+[Pipeline] { (Deploy)
+[Pipeline] sh
++ cd /var/www/html
++ git pull origin master
+From http://gitea:3000/sarah/web_app
+ * branch            master     -> FETCH_HEAD
+Already up to date.
+[Pipeline] }
+[Pipeline] // stage
+[Pipeline] }
+[Pipeline] // node
+[Pipeline] End of Pipeline
+Finished: SUCCESS
+Completed devops-webapp-job #2 : SUCCESS
+End-User Endpoint Preview (Load Balancer Root URL)
+Accessing the Load Balancer root URL (https://<LBR-URL>/) directly serves the deployed static site from /var/www/html without any subdirectory path:
+
+Plaintext
+Welcome to xFusionCorp Industries!
