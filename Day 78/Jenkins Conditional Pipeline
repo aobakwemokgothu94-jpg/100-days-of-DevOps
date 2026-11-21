@@ -1,0 +1,243 @@
+# Jenkins Pipeline Deployment – Nautilus Web Application
+
+## Project Overview
+
+This task involved configuring a Jenkins Pipeline to deploy the Gitea-hosted `sarah/web_app` repository to App Server 1 (`stapp01`).
+
+The pipeline supports two deployment branches:
+
+- `master`
+- `feature`
+
+A Jenkins string parameter named `BRANCH` determines which branch is deployed. The application is served by Apache from `/var/www/html` on port `8080`.
+
+## Environment Details
+
+| Component | Configuration |
+|---|---|
+| Jenkins job | `nautilus-webapp-job` |
+| Job type | Pipeline |
+| Jenkins node | `App Server 1` |
+| Node label | `stapp01` |
+| SSH username | `sarah` |
+| Remote agent directory | `/home/sarah/jenkins_agent` |
+| Git repository | `sarah/web_app` |
+| Git server | Gitea |
+| Deployment server | `stapp01` |
+| Deployment directory | `/var/www/html` |
+| Web server | Apache |
+| Application port | `8080` |
+| Pipeline parameter | `BRANCH` |
+| Supported branches | `master`, `feature` |
+
+## 1. Jenkins Agent Configuration
+
+Created a permanent Jenkins agent with the following settings:
+
+- Node name: `App Server 1`
+- Label: `stapp01`
+- Number of executors: `1`
+- Remote root directory: `/home/sarah/jenkins_agent`
+- Launch method: SSH
+- SSH username: `sarah`
+- Host: `stapp01`
+- Port: `22`
+
+The SSH connection authenticated successfully. Jenkins copied `remoting.jar`, started the Java agent process, and reported:
+
+`Agent successfully connected and online.`
+
+The agent directory and deployment directory were retained under Sarah's ownership.
+
+## 2. Jenkins Pipeline Job
+
+Created the Pipeline job named `nautilus-webapp-job`.
+
+### Build parameter
+
+| Parameter | Value |
+|---|---|
+| Name | `BRANCH` |
+| Type | String Parameter |
+| Default value | `master` |
+| Description | Git branch to deploy: master or feature |
+
+### Pipeline script
+
+```groovy
+pipeline {
+    agent {
+        label 'stapp01'
+    }
+
+    stages {
+        stage('Deploy') {
+            steps {
+                script {
+                    def branch = params.BRANCH.trim()
+
+                    if (!(branch in ['master', 'feature'])) {
+                        error("Invalid branch: ${branch}")
+                    }
+
+                    sh """
+                        cd /var/www/html
+                        git fetch origin
+                        git checkout ${branch}
+                        git pull origin ${branch}
+                    """
+                }
+            }
+        }
+    }
+}
+```
+
+### Pipeline operation
+
+1. Jenkins schedules the build on the `stapp01` agent.
+2. The pipeline reads the `BRANCH` parameter.
+3. The pipeline validates that the selected branch is `master` or `feature`.
+4. Git fetches the latest repository information.
+5. Git checks out the selected branch.
+6. Git pulls the latest changes from the remote branch.
+7. Apache serves the deployed application from `/var/www/html`.
+
+## 3. Deployment Results
+
+Both branch deployments completed successfully.
+
+| Test | Selected branch | Jenkins result |
+|---|---|---|
+| Deployment 1 | `master` | SUCCESS |
+| Deployment 2 | `feature` | SUCCESS |
+
+### Master branch content
+
+Verified repository content:
+
+```text
+Welcome to xFusionCorp Industries!
+```
+
+### Feature branch content
+
+Verified repository content:
+
+```text
+Updated
+```
+
+## 4. Server Verification
+
+The following commands were used to verify the deployment.
+
+### Verify current branch
+
+```bash
+sudo -u sarah git -C /var/www/html branch --show-current
+```
+
+Observed output:
+
+```text
+feature
+```
+
+### Verify both branch versions
+
+```bash
+sudo -u sarah git -C /var/www/html show origin/master:index.html
+
+sudo -u sarah git -C /var/www/html show origin/feature:index.html
+```
+
+Observed output:
+
+```text
+Welcome to xFusionCorp Industries!
+Updated
+```
+
+### Verify Apache
+
+```bash
+sudo systemctl is-active httpd
+sudo ss -lntp | grep ':8080'
+```
+
+Observed results:
+
+```text
+active
+LISTEN *:8080
+```
+
+### Verify website response
+
+```bash
+curl -i http://localhost:8080/
+```
+
+Observed HTTP response:
+
+```text
+HTTP/1.1 200 OK
+Server: Apache/2.4.62 (CentOS Stream)
+Content-Type: text/html; charset=UTF-8
+
+Updated
+```
+
+## 5. Directory Ownership
+
+Verified directory permissions:
+
+```text
+/home/sarah
+drwx--x--x sarah sarah
+
+/home/sarah/jenkins_agent
+drwxr-xr-x sarah sarah
+
+/var/www/html
+drwxr-xr-x sarah sarah
+```
+
+The repository and deployment directory remained owned by `sarah:sarah`, allowing the Jenkins agent to perform Git operations without changing the repository ownership.
+
+## 6. Evidence and Previews
+
+The following evidence should accompany the task documentation.
+
+| Preview | Evidence to capture |
+|---|---|
+| Preview 1 – Jenkins Agent | `App Server 1` showing Online |
+| Preview 2 – Jenkins Credentials | SSH connection configured for Sarah |
+| Preview 3 – Pipeline Configuration | `nautilus-webapp-job` and `BRANCH` parameter |
+| Preview 4 – Pipeline Script | The complete Deploy stage |
+| Preview 5 – Master Build | Console Output showing `Finished: SUCCESS` |
+| Preview 6 – Feature Build | Console Output showing `Finished: SUCCESS` |
+| Preview 7 – Server Deployment | Terminal showing current branch `feature` |
+| Preview 8 – Apache Response | Terminal showing HTTP `200 OK` and `Updated` |
+
+*Note: These are preview descriptions and evidence requirements, not screenshots. Capture the actual screenshots from the Jenkins dashboard and terminal.*
+
+## 7. Skills Demonstrated
+
+- Jenkins Pipeline creation and configuration
+- Jenkins permanent agent configuration
+- SSH-based remote agent connectivity
+- Git branch management
+- Parameterized CI/CD deployments
+- Apache web server verification
+- Linux directory permissions and ownership
+- Deployment testing and HTTP response validation
+
+## Conclusion
+
+Successfully configured the Jenkins Pipeline job `nautilus-webapp-job` to deploy the `master` and `feature` branches of the Gitea repository `sarah/web_app` to App Server 1.
+
+Both Jenkins builds completed with `SUCCESS`. The feature branch was checked out successfully, and Apache returned HTTP `200 OK` with the expected `Updated` page content.
+
+**Submission status:** Server-side implementation and verification completed. Final KodeKloud grader acceptance is pending confirmation.
