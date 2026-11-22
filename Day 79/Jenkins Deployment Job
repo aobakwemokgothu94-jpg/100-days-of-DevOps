@@ -1,0 +1,156 @@
+# Jenkins Automated Deployment from Gitea to App Server 1
+
+## Project Overview
+
+This task configures Jenkins to retrieve application source code from a Gitea repository and deploy it automatically to App Server 1 (`stapp01`).
+
+The Jenkins job is named:
+
+`datacenter-app-deployment`
+
+The deployment retrieves the `master` branch from Gitea and publishes the repository contents to Apache's document root.
+
+## Environment Details
+
+| Component | Configuration |
+|---|---|
+| Source control | Gitea |
+| Repository | `sarah/web` |
+| Repository URL | `http://gitea:3000/sarah/web.git` |
+| Branch | `master` |
+| CI/CD server | Jenkins |
+| Jenkins job | `datacenter-app-deployment` |
+| Deployment server | `stapp01` |
+| Deployment user | `tony` |
+| Web server | Apache (`httpd`) |
+| Deployment directory | `/var/www/html` |
+| Directory owner | `sarah:sarah` |
+| Load balancer | `stlb01:8091` |
+| Trigger mechanism | Jenkins Poll SCM |
+| Polling schedule | `H/2 * * * *` |
+
+## 1. Repository Configuration
+
+The application repository is hosted on Gitea:
+
+`http://gitea:3000/sarah/web`
+
+The application was updated with the following welcome message:
+
+```text
+Welcome to the xFusionCorp Industries
+```
+
+The change was committed and pushed to the `master` branch.
+
+Commit:
+
+`099ef6b556e1d212a73a00e4f2cddcd6d88baac9`
+
+## 2. Jenkins Configuration
+
+A Jenkins Freestyle project named `datacenter-app-deployment` was created.
+
+Source Code Management:
+- Git repository configured.
+- Gitea repository credentials configured in Jenkins.
+- Branch configured as `*/master`.
+
+Build Trigger:
+- Poll SCM enabled.
+- Schedule: `H/2 * * * *`.
+- Jenkins checks for repository changes approximately every two minutes.
+
+## 3. Deployment Configuration
+
+Jenkins connects to App Server 1 through SSH using the `tony` account.
+
+Passwordless sudo was verified for the deployment commands.
+
+The deployment script:
+
+```bash
+set -e
+
+tar --exclude='.git' -czf /tmp/web-deployment.tar.gz -C "$WORKSPACE" .
+
+scp /tmp/web-deployment.tar.gz tony@stapp01:/tmp/web-deployment.tar.gz
+
+ssh tony@stapp01 "sudo -n tar -xzf /tmp/web-deployment.tar.gz -C /var/www/html && sudo -n chown -R sarah:sarah /var/www/html && sudo -n systemctl restart httpd && sudo -n rm -f /tmp/web-deployment.tar.gz"
+
+rm -f /tmp/web-deployment.tar.gz
+```
+
+The script:
+1. Archives the Jenkins workspace.
+2. Excludes Git metadata.
+3. Transfers the archive to App Server 1.
+4. Extracts the application into `/var/www/html`.
+5. Sets ownership to `sarah:sarah`.
+6. Restarts Apache.
+7. Removes the temporary deployment archive.
+
+## 4. Verification Results
+
+### Jenkins build verification
+
+The first deployment completed successfully:
+
+`Finished: SUCCESS`
+
+A subsequent build also completed successfully:
+
+`Finished: SUCCESS`
+
+The second build confirmed that the deployment process could be repeated without the previous Git metadata permission errors.
+
+### Apache verification
+
+Apache was confirmed active on App Server 1.
+
+### Load balancer verification
+
+Command:
+
+```bash
+curl -i http://stlb01:8091/
+```
+
+Observed result:
+
+```text
+HTTP/1.1 200 OK
+server: Apache/2.4.62 (CentOS Stream)
+content-type: text/html; charset=UTF-8
+content-length: 37
+```
+
+Application response:
+
+```text
+Welcome to the xFusionCorp Industries
+```
+
+## 5. Evidence and Preview Gallery
+
+Add the following screenshots to the submission evidence folder.
+
+| Preview | Screenshot evidence |
+|---|---|
+| 01 - Gitea Repository | Repository showing the updated `index.html` and master branch |
+| 02 - Jenkins Job | Job named `datacenter-app-deployment` |
+| 03 - Jenkins SCM and Trigger | Git repository, master branch and Poll SCM schedule |
+| 04 - First Successful Build | Jenkins console showing `Finished: SUCCESS` |
+| 05 - Repeated Successful Build | Second Jenkins console showing `Finished: SUCCESS` |
+| 06 - Deployment Verification | Deployment script in Jenkins configuration |
+| 07 - Website Verification | Terminal showing HTTP 200 and the application welcome message |
+
+## 6. Conclusion
+
+The Jenkins deployment pipeline was configured and tested successfully.
+
+Jenkins retrieves the application from Gitea, transfers the repository contents to App Server 1, applies the required ownership, and restarts Apache.
+
+Two successful Jenkins builds and a successful HTTP 200 response from the load balancer demonstrate that the deployment is functioning and repeatable.
+
+**Trigger qualification:** The implemented automatic trigger uses Jenkins Poll SCM rather than a Gitea webhook. Repository changes are checked approximately every two minutes.
