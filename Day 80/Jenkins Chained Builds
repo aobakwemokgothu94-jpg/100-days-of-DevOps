@@ -1,0 +1,87 @@
+# Jenkins Chained Builds: Automated Git Deployment & Service Management
+
+## Overview
+Configured an automated two-stage CI/CD pipeline in **Jenkins** using chained upstream/downstream jobs to deploy updates from a Git repository onto **App Server 1 (`stapp01`)** and restart the Apache web server (`httpd`).
+
+- **Upstream Job (`nautilus-app-deployment`):** Connects via SSH to `tony@stapp01`, checks out the `master` branch under `/var/www/html`, and pulls the latest commits.
+- **Downstream Job (`manage-services`):** Automatically triggered only when `nautilus-app-deployment` succeeds (`SUCCESS`), connecting to `tony@stapp01` to restart the `httpd` service.
+
+---
+
+## Architecture & Pipeline Flow
+
+[Admin / Trigger]
+│
+▼
+┌───────────────────────────────┐
+│   nautilus-app-deployment     │
+│  (SSH -> tony@stapp01)        │
+│  git checkout master && pull  │
+└──────────────┬────────────────┘
+│ Trigger if build is stable (SUCCESS)
+▼
+┌───────────────────────────────┐
+│       manage-services         │
+│  (SSH -> tony@stapp01)        │
+│  sudo systemctl restart httpd │
+└──────────────┬────────────────┘
+│
+▼
+[App Server 1: httpd live]
+http:/// -> Welcome to KodeKloud!
+---
+
+## Implementation Steps & Commands
+
+### 1. Configure Passwordless SSH from `jenkins` Service User to `tony@stapp01`
+Generated an RSA key in PEM format directly under the `jenkins` user (`/var/lib/jenkins/.ssh/id_rsa`) and authorized it on App Server 1:
+
+```bash
+ssh jenkins@jenkins
+ssh-keygen -t rsa -m PEM -N "" -f ~/.ssh/id_rsa
+ssh-copy-id -o StrictHostKeyChecking=no tony@stapp01
+2. Clean Job Configurations via CLI (config.xml)Removed broken SSH Agent <buildWrappers> entries and ensured exact shell commands were configured in both job XML files on the Jenkins controller:Bash# Remove legacy SSH Agent wrappers from both jobs
+sed -i '/<buildWrappers>/,/<\/buildWrappers>/c\<buildWrappers/>' /var/lib/jenkins/jobs/*/config.xml
+
+# Set exact Git deployment command in nautilus-app-deployment
+sed -i 's|sudo systemctl restart httpd|cd /var/www/html \&amp;\&amp; sudo git checkout master \&amp;\&amp; sudo git pull origin master|' /var/lib/jenkins/jobs/nautilus-app-deployment/config.xml
+
+# Verify commands across both job configs
+grep "<command>" /var/lib/jenkins/jobs/*/config.xml
+3. Reload Jenkins Configuration & Trigger Chained Builds via REST API (with CSRF Crumb)Fetched a valid Jenkins CSRF crumb and session cookie to reload configuration from disk and execute two consecutive verification runs:BashCRUMB=$(curl -s -c /tmp/cookies -u 'admin:Adm!n321' 'http://localhost:8080/crumbIssuer/api/xml?xpath=concat(//crumbRequestField,":",//crumb)')
+
+# Reload Jenkins configuration from disk
+curl -s -b /tmp/cookies -u 'admin:Adm!n321' -H "$CRUMB" -X POST http://localhost:8080/reload && sleep 4
+
+# Trigger Run #1 and Run #2
+curl -s -b /tmp/cookies -u 'admin:Adm!n321' -H "$CRUMB" -X POST http://localhost:8080/job/nautilus-app-deployment/build && sleep 8
+curl -s -b /tmp/cookies -u 'admin:Adm!n321' -H "$CRUMB" -X POST http://localhost:8080/job/nautilus-app-deployment/build && sleep 8
+Terminal Execution PreviewsSSH Key Setup & Job XML VerificationPlaintextjenkins@jenkins:~$ ssh-copy-id -o StrictHostKeyChecking=no tony@stapp01
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/var/lib/jenkins/.ssh/id_rsa.pub"
+/usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
+/usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
+tony@stapp01's password: 
+
+Number of key(s) added: 1
+
+jenkins@jenkins:~$ grep "<command>" /var/lib/jenkins/jobs/*/config.xml
+/var/lib/jenkins/jobs/manage-services/config.xml:      <command>ssh -o StrictHostKeyChecking=no tony@stapp01 &quot;sudo systemctl restart httpd&quot;</command>
+/var/lib/jenkins/jobs/nautilus-app-deployment/config.xml:      <command>ssh -o StrictHostKeyChecking=no tony@stapp01 &quot;cd /var/www/html &amp;&amp; sudo git checkout master &amp;&amp; sudo git pull origin master&quot;</command>
+Jenkins Console Output (nautilus-app-deployment & manage-services)Plaintext * branch            master     -> FETCH_HEAD
+   cf99234..2726e2a  master     -> origin/master
+Updating cf99234..2726e2a
+Fast-forward
+ index.html | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+Triggering a new build of manage-services
+Finished: SUCCESS
+
+Started by upstream project "nautilus-app-deployment" build number 5
+originally caused by:
+ Started by user admin
+Running as SYSTEM
+Building in workspace /var/lib/jenkins/workspace/manage-services
+[manage-services] $ /bin/sh -xe /tmp/jenkins12848535790306404567.sh
++ ssh -o StrictHostKeyChecking=no tony@stapp01 sudo systemctl restart httpd
+Finished: SUCCESS
+Troubleshooting LogIssue EncounteredRoot CauseResolutionssh-add ... error in libcrypto during buildJenkins SSH Agent plugin failed to parse the private key credential format.Generated a native RSA PEM key (ssh-keygen -t rsa -m PEM) under /var/lib/jenkins/.ssh/id_rsa, copied the public key to tony@stapp01, and removed <buildWrappers> (SSH Agent) from both config.xml files.-bash: !n321: event not found & !s': event not foundBash history expansion intercepted ! inside unquoted or double-quoted strings (Adm!n321, j@rv!s).Wrapped credentials in single quotes ('admin:Adm!n321') to prevent shell history expansion.jenkins is not in the sudoers fileAttempted sudo su - jenkins while already authenticated directly as the jenkins user.Executed key generation and configuration edits directly as jenkins@jenkins without sudo.HTTP ERROR 403 No valid crumb was included in the requestJenkins CSRF protection blocked unauthenticated POST API requests to /reload and /build.Queried /crumbIssuer/api/xml with -c /tmp/cookies and passed both -b /tmp/cookies and -H "$CRUMB" on subsequent POST calls.Upstream job executed systemctl restart httpd instead of git pullIncorrect shell command was initially stored in nautilus-app-deployment/config.xml.Updated config.xml via sed with XML-escaped &amp;&amp; operators (cd /var/www/html && sudo git checkout master && sudo git pull origin master) and reloaded Jenkins from disk.
