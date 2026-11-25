@@ -1,0 +1,99 @@
+# Ansible Inventory & Playbook Execution on `stapp03`
+
+Configured an INI-format [Ansible](https://docs.ansible.com/) inventory in `/home/thor/playbook/inventory` on the jump host (`thor@jump-host`) targeting Application Server 3 (`stapp03`) in Stratos DC, and verified playbook execution with `ansible-playbook -i inventory playbook.yml`.
+
+## Task Requirements & Implementation
+
+* **INI Inventory Path (`/home/thor/playbook/inventory`):** Created on `jump-host` inside `/home/thor/playbook/`.
+* **Target Host & Connection Variables:** Added `stapp03` with SSH connection and privilege escalation credentials (`ansible_host=stapp03`, `ansible_user=banner`, `ansible_ssh_pass=BigGr33n`, `ansible_become_pass=BigGr33n`).
+* **Hostname Alignment:** Matched the inventory host alias (`stapp03`) to the Stratos DC server name.
+* **Host Key Handling:** Added `/home/thor/playbook/ansible.cfg` with `host_key_checking = False` so non-interactive validation runs without SSH prompt blocks.
+
+## Configuration Files
+
+### `/home/thor/playbook/inventory`
+
+```ini
+stapp03 ansible_host=stapp03 ansible_user=banner ansible_ssh_pass=BigGr33n ansible_become_pass=BigGr33n
+```
+
+### `/home/thor/playbook/ansible.cfg`
+
+```ini
+[defaults]
+host_key_checking = False
+```
+
+## Terminal Execution Previews
+
+### 1. Inventory Creation, Ping Check & Initial Playbook Run
+
+```text
+thor@jump-host ~$ cat << 'EOF' > /home/thor/playbook/inventory
+stapp03 ansible_host=stapp03 ansible_user=banner ansible_ssh_pass=BigGr33n ansible_become_pass=BigGr33n
+EOF
+thor@jump-host ~$ cd /home/thor/playbook
+ansible stapp03 -i inventory -m ping
+ansible-playbook -i inventory playbook.yml
+stapp03 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+PLAY [all] **************************************************************************
+
+TASK [Gathering Facts] **************************************************************
+ok: [stapp03]
+
+TASK [Install httpd package] ********************************************************
+changed: [stapp03]
+
+TASK [Start service httpd] **********************************************************
+changed: [stapp03]
+
+PLAY RECAP **************************************************************************
+stapp03                    : ok=3    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+### 2. Idempotency Check (`ansible.cfg` + Second Playbook Run)
+
+```text
+thor@jump-host ~/playbook$ cat << 'EOF' > /home/thor/playbook/ansible.cfg
+[defaults]
+host_key_checking = False
+EOF
+thor@jump-host ~/playbook$ ansible-playbook -i inventory playbook.yml
+
+PLAY [all] **************************************************************************
+
+TASK [Gathering Facts] **************************************************************
+ok: [stapp03]
+
+TASK [Install httpd package] ********************************************************
+ok: [stapp03]
+
+TASK [Start service httpd] **********************************************************
+ok: [stapp03]
+
+PLAY RECAP **************************************************************************
+stapp03                    : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+## Verification Summary
+
+| Check | Command | Result |
+|---|---|---|
+| Reachability | `ansible stapp03 -i inventory -m ping` | `pong` (`/usr/bin/python3`) |
+| Playbook Run 1 | `ansible-playbook -i inventory playbook.yml` | `ok=3`, `changed=2`, `failed=0` |
+| Playbook Run 2 | `ansible-playbook -i inventory playbook.yml` | `ok=3`, `changed=0`, `failed=0` |
+
+## Troubleshooting Notes
+
+| Issue | Cause | Resolution |
+|---|---|---|
+| `sudo` / privilege escalation failure | Missing become password in inventory | Included `ansible_become_pass=BigGr33n` on `stapp03` |
+| Interactive SSH key prompt risk | Strict host key checking enabled by default | Configured `host_key_checking = False` in `/home/thor/playbook/ansible.cfg` |
+| Unintended state drift on re-run | Non-idempotent tasks | Verified second run reports `
