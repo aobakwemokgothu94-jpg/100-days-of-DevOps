@@ -1,0 +1,66 @@
+# Ansible Playbook & Inventory Configuration — Stratos DC (`stapp03`)
+
+## Task Overview
+Complete an Ansible configuration on `jump-host` (`/home/thor/ansible`) so that an automated validation command (`ansible-playbook -i inventory playbook.yml`) executes without additional CLI flags and creates an empty file `/tmp/file.txt` on **App Server 3 (`stapp03`)** in Stratos DC.
+
+---
+
+## Infrastructure & Target Details
+
+| Parameter | Value |
+|---|---|
+| **Control Node** | `jump-host` (`thor`) |
+| **Target Host** | App Server 3 (`stapp03`) |
+| **SSH User** | `banner` |
+| **Inventory Path** | `/home/thor/ansible/inventory` |
+| **Playbook Path** | `/home/thor/ansible/playbook.yml` |
+| **Target File** | `/tmp/file.txt` |
+
+---
+
+## Implementation
+
+### 1. Inventory File (`/home/thor/ansible/inventory`)
+Configured `stapp03` with explicit connection credentials and disabled interactive host-key prompts so `ansible-playbook` runs cleanly in non-interactive validation:
+
+```ini
+stapp03 ansible_host=stapp03 ansible_user=banner ansible_password=BigGr33n ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+2. Playbook (/home/thor/ansible/playbook.yml)
+Used ansible.builtin.file with state: touch and privilege escalation (become: yes) to create /tmp/file.txt:
+
+YAML
+---
+- name: Create empty file on App Server 3
+  hosts: stapp03
+  become: yes
+  tasks:
+    - name: Create /tmp/file.txt
+      ansible.builtin.file:
+        path: /tmp/file.txt
+        state: touch
+        mode: '0644'
+Execution & Verification Preview
+Playbook Execution
+Plaintext
+thor@jump-host ~/ansible$ ansible-playbook -i inventory playbook.yml
+
+PLAY [Create empty file on App Server 3] ********************************************
+
+TASK [Gathering Facts] **************************************************************
+ok: [stapp03]
+
+TASK [Create /tmp/file.txt] *********************************************************
+changed: [stapp03]
+
+PLAY RECAP **************************************************************************
+stapp03                    : ok=2    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
+Remote File Verification
+Plaintext
+thor@jump-host ~/ansible$ ansible stapp03 -i inventory -m command -a "ls -la /tmp/file.txt"
+stapp03 | CHANGED | rc=0 >>
+-rw-r--r-- 1 root root 0 Nov 26 05:08 /tmp/file.txt
+Troubleshooting & Notes
+Issue	Cause	Resolution
+Undefined password variable (ansible_ssh_pass=$pwd)	Incomplete inventory entry left by previous team member	Replaced $pwd placeholder with the valid stapp03 credential (BigGr33n)
+Non-interactive SSH prompt failure	First-time SSH connections prompt for host fingerprint confirmation	Added ansible_ssh_common_args='-o StrictHostKeyChecking=no' in the inventory entry
+Validation command constraints	Grader executes ansible-playbook -i inventory playbook.yml with no extra flags	Embedded user, password, and SSH arguments directly in /home/thor/ansible/inventory
