@@ -1,0 +1,19 @@
+# Ansible Copy Module: Deploy `index.html` Across Stratos DC Application Servers
+
+## Overview
+Configured an Ansible inventory and playbook on `jump-host` (`/home/thor/ansible`) to distribute `/usr/src/security/index.html` to `/opt/security/index.html` across all three Nautilus application servers (`stapp01`, `stapp02`, `stapp03`) using privilege escalation (`become: yes`).
+
+## Infrastructure & File Paths
+* **Control Node:** `jump-host` (`/home/thor/ansible`)
+* **Inventory File:** `/home/thor/ansible/inventory`
+* **Playbook File:** `/home/thor/ansible/playbook.yml`
+* **Source File:** `/usr/src/security/index.html` (on `jump-host`)
+* **Destination Path:** `/opt/security/index.html` (on `stapp01`, `stapp02`, `stapp03`)
+
+## Configuration Files
+
+### 1. Inventory (`/home/thor/ansible/inventory`)
+```ini
+stapp01 ansible_host=stapp01 ansible_user=tony ansible_ssh_pass=Ir0nM@n ansible_become_pass=Ir0nM@n ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+stapp02 ansible_host=stapp02 ansible_user=steve ansible_ssh_pass=Am3ric@ ansible_become_pass=Am3ric@ ansible_ssh_common_args='-o StrictHostKeyChecking=no'
+stapp03 ansible_host=stapp03 ansible_user=banner ansible_ssh_pass=BigGr33n ansible_become_pass=BigGr33n ansible_ssh_common_args='-o StrictHostKeyChecking=no'
