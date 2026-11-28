@@ -1,0 +1,315 @@
+# Nautilus DevOps — Ansible File Creation on Application Servers
+
+## 1. Project Overview
+
+**Project:** Remote File Creation and Permission Management Using Ansible  
+**Environment:** Stratos Datacenter (Stratos DC)  
+**Automation Host:** Jump Host  
+**Remote Servers:** stapp01, stapp02, stapp03  
+**Working Directory:** `~/playbook`  
+**Status:** SUCCESSFULLY COMPLETED
+
+### Objective
+
+The Nautilus DevOps team required an Ansible automation solution to create a blank file named `/opt/nfsdata.txt` on all three application servers.
+
+The task required:
+
+- Creating an Ansible inventory containing all application servers.
+- Creating a playbook to manage remote file creation.
+- Setting file permissions to `0777`.
+- Assigning the correct user and group ownership on each server.
+- Ensuring the playbook executes using the exact validation command:
+
+```bash
+ansible-playbook -i inventory playbook.yml
+```
+
+## 2. Infrastructure Details
+
+The automation was performed from the Jump Host using the following application servers.
+
+| Server | Hostname | SSH User | Purpose |
+|---|---|---|---|
+| Application Server 1 | stapp01 | tony | Nautilus Application 1 |
+| Application Server 2 | stapp02 | steve | Nautilus Application 2 |
+| Application Server 3 | stapp03 | banner | Nautilus Application 3 |
+
+### Required file configuration
+
+| Server | File path | Owner | Group | Mode |
+|---|---|---|---|---|
+| stapp01 | `/opt/nfsdata.txt` | tony | tony | 0777 |
+| stapp02 | `/opt/nfsdata.txt` | steve | steve | 0777 |
+| stapp03 | `/opt/nfsdata.txt` | banner | banner | 0777 |
+
+## 3. Technologies and Modules Used
+
+- **Ansible:** Configuration management and remote automation.
+- **SSH:** Secure communication with remote application servers.
+- **Linux:** Remote operating system and file management.
+- **YAML:** Ansible playbook configuration.
+- **Inventory:** Defines the managed application servers.
+- **ansible.builtin.copy:** Creates the blank file and manages its attributes.
+- **Privilege escalation:** Uses Ansible `become` to perform privileged operations.
+- **stat:** Verifies file ownership, group and permissions.
+
+## 4. Implementation
+
+### Step 1 — Create the working directory
+
+On the Jump Host:
+
+```bash
+mkdir -p ~/playbook
+cd ~/playbook
+```
+
+The working directory was created to hold the inventory and playbook files.
+
+### Step 2 — Create the Ansible inventory
+
+File: `~/playbook/inventory`
+
+```ini
+[app_servers]
+stapp01 ansible_user=tony ansible_password='Ir0nM@n' ansible_become_password='Ir0nM@n'
+stapp02 ansible_user=steve ansible_password='Am3ric@' ansible_become_password='Am3ric@'
+stapp03 ansible_user=banner ansible_password='BigGr33n' ansible_become_password='BigGr33n'
+
+[app_servers:vars]
+ansible_connection=ssh
+ansible_become=true
+ansible_become_method=sudo
+```
+
+The inventory defines an `app_servers` group containing the three application servers.
+
+Each host has its own SSH username and authentication configuration. Privilege escalation is enabled for administrative file operations.
+
+The inventory was protected with:
+
+```bash
+chmod 600 inventory
+```
+
+### Step 3 — Create the Ansible playbook
+
+File: `~/playbook/playbook.yml`
+
+```yaml
+---
+- name: Create NFS data file on all application servers
+  hosts: app_servers
+  become: true
+
+  tasks:
+    - name: Create blank file with required permissions and ownership
+      ansible.builtin.copy:
+        content: ""
+        dest: /opt/nfsdata.txt
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+        mode: '0777'
+```
+
+### Explanation of the playbook
+
+| Directive | Function |
+|---|---|
+| `hosts: app_servers` | Targets all three application servers |
+| `become: true` | Enables privilege escalation |
+| `ansible.builtin.copy` | Creates and manages the file |
+| `content: ""` | Creates a blank file |
+| `dest` | Defines the destination path |
+| `owner` | Assigns the remote SSH user as file owner |
+| `group` | Assigns the corresponding group |
+| `mode: '0777'` | Sets full read, write and execute permissions |
+
+Using `{{ ansible_user }}` allows the same playbook to assign the correct ownership dynamically on each application server.
+
+### Step 4 — Verify inventory and playbook
+
+```bash
+cd ~/playbook
+
+cat inventory
+cat playbook.yml
+```
+
+Both files were successfully created and their configurations were verified.
+
+### Step 5 — Test connectivity
+
+Before executing the playbook, connectivity was tested:
+
+```bash
+ansible app_servers -i inventory -m ping
+```
+
+All three application servers returned:
+
+```text
+stapp03 | SUCCESS
+"ping": "pong"
+
+stapp01 | SUCCESS
+"ping": "pong"
+
+stapp02 | SUCCESS
+"ping": "pong"
+```
+
+This confirmed successful Ansible connectivity to all application servers.
+
+### Step 6 — Execute the playbook
+
+The required validation command was executed:
+
+```bash
+ansible-playbook -i inventory playbook.yml
+```
+
+The playbook successfully created the blank file on all three servers.
+
+## 5. Execution Previews and Evidence
+
+### Preview 1 — Ansible connectivity verification
+
+**Command:**
+
+```bash
+ansible app_servers -i inventory -m ping
+```
+
+**Actual terminal output:**
+
+```text
+stapp03 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+stapp01 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+
+stapp02 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
+```
+
+**Result:** All three application servers were reachable.
+
+### Preview 2 — Playbook execution
+
+**Command:**
+
+```bash
+ansible-playbook -i inventory playbook.yml
+```
+
+**Actual terminal output:**
+
+```text
+PLAY [Create NFS data file on all application servers]
+
+TASK [Gathering Facts]
+ok: [stapp01]
+ok: [stapp02]
+ok: [stapp03]
+
+TASK [Create blank file with required permissions and ownership]
+changed: [stapp01]
+changed: [stapp03]
+changed: [stapp02]
+
+PLAY RECAP
+stapp01 : ok=2 changed=1 unreachable=0 failed=0
+stapp02 : ok=2 changed=1 unreachable=0 failed=0
+stapp03 : ok=2 changed=1 unreachable=0 failed=0
+```
+
+**Result:** The playbook completed successfully on all application servers without failures or unreachable hosts.
+
+### Preview 3 — File ownership and permission verification
+
+**Command:**
+
+```bash
+ansible app_servers -i inventory -b -m command \
+-a "stat -c '%n %U:%G %a' /opt/nfsdata.txt"
+```
+
+**Actual terminal output:**
+
+```text
+stapp02 | CHANGED | rc=0 >>
+/opt/nfsdata.txt steve:steve 777
+
+stapp01 | CHANGED | rc=0 >>
+/opt/nfsdata.txt tony:tony 777
+
+stapp03 | CHANGED | rc=0 >>
+/opt/nfsdata.txt banner:banner 777
+```
+
+**Result:** The file was confirmed to exist with the required ownership, group and permissions on all three servers.
+
+## 6. Final Verification Summary
+
+| Requirement | Result |
+|---|---|
+| Create `~/playbook` | SUCCESS |
+| Create inventory file | SUCCESS |
+| Include all three application servers | SUCCESS |
+| Configure SSH authentication | SUCCESS |
+| Test remote connectivity | SUCCESS |
+| Create `playbook.yml` | SUCCESS |
+| Create blank `/opt/nfsdata.txt` | SUCCESS |
+| Set permissions to `0777` | SUCCESS |
+| Set owner to tony on stapp01 | SUCCESS |
+| Set owner to steve on stapp02 | SUCCESS |
+| Set owner to banner on stapp03 | SUCCESS |
+| Verify group ownership | SUCCESS |
+| Execute required validation command | SUCCESS |
+
+## 7. Key Learning Outcomes
+
+This practical exercise demonstrated the following DevOps and automation concepts:
+
+1. **Ansible inventory management:** Organizing multiple remote hosts into logical groups.
+2. **SSH authentication:** Connecting to remote Linux servers using host-specific credentials.
+3. **Privilege escalation:** Using `become` to perform administrative operations.
+4. **Ansible copy module:** Creating blank files and controlling their attributes.
+5. **Linux file permissions:** Applying octal permission mode `0777`.
+6. **Dynamic variables:** Using `ansible_user` to assign ownership according to each remote host's configured user.
+7. **Infrastructure automation:** Applying consistent configuration across multiple servers using one playbook.
+8. **Validation and troubleshooting:** Testing connectivity and verifying the final remote configuration.
+
+### Security consideration
+
+The inventory contains plaintext SSH credentials because this is a lab-specific configuration. In production, credentials should be protected using Ansible Vault or an approved secrets-management system. Additionally, `0777` grants all users read, write and execute permissions; it should only be used where explicitly required.
+
+## 8. Conclusion
+
+The Nautilus DevOps Ansible file creation task was successfully completed.
+
+An inventory file was created on the Jump Host containing all three application servers. An Ansible playbook was implemented to create a blank `/opt/nfsdata.txt` file on each remote host.
+
+The playbook successfully applied the required `0777` permissions and assigned the correct user and group ownership to each file.
+
+Connectivity tests, playbook execution results and remote file verification confirmed that all three application servers met the specified requirements.
+
+**Final Outcome: SUCCESS — All task requirements satisfied.**
